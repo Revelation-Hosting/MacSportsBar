@@ -43,6 +43,7 @@ struct BasketballAdapter: SportAdapter {
             let detail = [clock, period].filter { !$0.isEmpty }.joined(separator: " ")
             return SportEvent(
                 id: event.id ?? "\(awayAbbr)-\(homeAbbr)",
+                league: league,
                 state: .live,
                 displayString: join(scoreLine, detail),
                 isFavorite: isFav,
@@ -52,6 +53,7 @@ struct BasketballAdapter: SportAdapter {
         case "post":
             return SportEvent(
                 id: event.id ?? "\(awayAbbr)-\(homeAbbr)",
+                league: league,
                 state: .final,
                 displayString: join(scoreLine, "Final"),
                 isFavorite: isFav,
@@ -64,6 +66,7 @@ struct BasketballAdapter: SportAdapter {
                 ?? (status?.type?.shortDetail ?? "")
             return SportEvent(
                 id: event.id ?? "\(awayAbbr)-\(homeAbbr)",
+                league: league,
                 state: .pre(startDate: start),
                 displayString: join("\(awayAbbr) vs \(homeAbbr)", timeLabel),
                 isFavorite: isFav,

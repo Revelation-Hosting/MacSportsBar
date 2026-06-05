@@ -10,6 +10,20 @@ struct LeagueID {
     let displayName: String
 }
 
+extension LeagueID {
+    /// SF Symbol used as the league glyph in the menu bar and dropdown. Monochrome template
+    /// symbols render crisply at menu-bar size and adapt to light/dark (unlike color logos).
+    var symbolName: String {
+        switch sport {
+        case "basketball": return "basketball.fill"
+        case "baseball":   return "baseball.fill"
+        case "golf":       return "figure.golf"
+        case "racing":     return "flag.checkered"
+        default:           return "sportscourt.fill"
+        }
+    }
+}
+
 /// One adapter per data *shape*. Each adapter owns its own fetch + decode + format so a
 /// breaking upstream change stays a localized, one-file fix.
 protocol SportAdapter {

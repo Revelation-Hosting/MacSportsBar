@@ -11,6 +11,8 @@ struct SportEvent: Identifiable {
     }
 
     let id: String
+    /// The league this event belongs to — drives the menu-bar/dropdown icon.
+    let league: LeagueID
     let state: State
     /// Compact, menu-bar-ready string, e.g. `NY 102  SA 98 · 4:32 Q4`.
     let displayString: String

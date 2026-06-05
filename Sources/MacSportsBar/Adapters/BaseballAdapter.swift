@@ -37,16 +37,16 @@ struct BaseballAdapter: SportAdapter {
         switch state {
         case "in":
             let detail = liveDetail(status: status, situation: competition.situation)
-            return SportEvent(id: id, state: .live, displayString: join(scoreLine, detail),
+            return SportEvent(id: id, league: league, state: .live, displayString: join(scoreLine, detail),
                               isFavorite: isFav, sortPriority: isFav ? 1000 : 800)
         case "post":
-            return SportEvent(id: id, state: .final, displayString: join(scoreLine, "Final"),
+            return SportEvent(id: id, league: league, state: .final, displayString: join(scoreLine, "Final"),
                               isFavorite: isFav, sortPriority: isFav ? 300 : 100)
         default: // "pre"
             let start = parseDate(event.date)
             let timeLabel = start.map { Self.timeFormatter.string(from: $0) }
                 ?? (status?.type?.shortDetail ?? "")
-            return SportEvent(id: id, state: .pre(startDate: start),
+            return SportEvent(id: id, league: league, state: .pre(startDate: start),
                               displayString: join("\(awayAbbr) vs \(homeAbbr)", timeLabel),
                               isFavorite: isFav, sortPriority: isFav ? 600 : 400)
         }

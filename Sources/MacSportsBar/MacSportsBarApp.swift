@@ -24,10 +24,16 @@ struct MacSportsBarApp: App {
     @StateObject private var model = AppModel()
 
     var body: some Scene {
+        // The status item shows a label as EITHER text or an image, never both (and inline
+        // images inside a Text are dropped). So we feed it one pre-composited template image.
         MenuBarExtra {
             MenuContent(model: model)
         } label: {
-            Text(model.menuBarText)
+            if let image = model.menuBarImage {
+                Image(nsImage: image)
+            } else {
+                Text(model.menuBarText)
+            }
         }
         .menuBarExtraStyle(.menu)
 

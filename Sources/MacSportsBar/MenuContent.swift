@@ -12,7 +12,7 @@ struct MenuContent: View {
             Text("No games right now")
         } else {
             ForEach(model.events.prefix(8)) { event in
-                Text(event.displayString)
+                Label(event.displayString, systemImage: event.league.symbolName)
             }
         }
 

@@ -22,6 +22,9 @@ Coca-Cola 600 · L245/400 · St3 · #5 Larson   ← live NASCAR Cup
 
 - Lives entirely in the menu bar via SwiftUI's `MenuBarExtra` (an *agent* app — no dock
   icon, no main window).
+- Prefixes each score with a **league glyph** (an SF Symbol — 🏀 / ⚾) so you can tell NBA
+  from MLB at a glance. (Team logos are a planned opt-in; they're illegible at menu-bar size
+  by default, hence the monochrome league glyph.)
 - Polls live scores on an adaptive cadence and renders **one short string** (~20–30
   characters) so it survives menu-bar width limits and notch crowding on MacBooks.
 - Ranks what's relevant (live favorite > live > starting soon > final today) and shows

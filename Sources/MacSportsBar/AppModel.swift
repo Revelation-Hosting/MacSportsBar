@@ -1,5 +1,6 @@
 import SwiftUI
 import Combine
+import AppKit
 
 /// Owns the polling loop, the ranked event list, and the cycling/truncation logic that
 /// decides the single string shown in the menu bar. Reads everything user-tunable from the
@@ -8,6 +9,11 @@ import Combine
 final class AppModel: ObservableObject {
     /// The single string rendered in the menu bar.
     @Published var menuBarText: String = "Loading…"
+    /// SF Symbol shown beside the menu-bar text — the current event's league glyph.
+    @Published var menuBarSymbol: String = "sportscourt.fill"
+    /// Pre-rendered menu-bar label (glyph + score) as one template image. The status item
+    /// shows a label as *either* text or an image — never both — so we composite them.
+    @Published var menuBarImage: NSImage?
     /// Full ranked list, surfaced in the dropdown menu.
     @Published var events: [SportEvent] = []
 
@@ -143,23 +149,42 @@ final class AppModel: ObservableObject {
     }
 
     private func updateMenuBar() {
-        guard !enabledLeagues.isEmpty else {
+        if enabledLeagues.isEmpty {
             menuBarText = "No sports enabled"
-            return
-        }
-        let chosen: SportEvent?
-        if settings.cycleEnabled, cycleCandidates.count > 1 {
-            chosen = cycleCandidates[cycleIndex % cycleCandidates.count]
+            menuBarSymbol = "sportscourt.fill"
         } else {
-            chosen = events.first
+            let chosen: SportEvent?
+            if settings.cycleEnabled, cycleCandidates.count > 1 {
+                chosen = cycleCandidates[cycleIndex % cycleCandidates.count]
+            } else {
+                chosen = events.first
+            }
+            if let chosen {
+                menuBarText = truncate(chosen.displayString)
+                menuBarSymbol = chosen.league.symbolName
+            } else {
+                menuBarSymbol = "sportscourt.fill"
+                menuBarText = (settings.favoritesOnly && !settings.favoriteTokens.isEmpty)
+                    ? "No favorite games" : "No games"
+            }
         }
-        if let chosen {
-            menuBarText = truncate(chosen.displayString)
-        } else if settings.favoritesOnly, !settings.favoriteTokens.isEmpty {
-            menuBarText = "No favorite games"
-        } else {
-            menuBarText = "No games"
+        renderMenuBarImage()
+    }
+
+    /// Composite the league glyph and the score into a single template `NSImage`, because the
+    /// status item won't render an icon and text together from a SwiftUI label.
+    private func renderMenuBarImage() {
+        let label = HStack(spacing: 4) {
+            Image(systemName: menuBarSymbol)
+            Text(menuBarText)
         }
+        .font(.system(size: 13))
+
+        let renderer = ImageRenderer(content: label)
+        renderer.scale = 2  // render @2x for crisp text on Retina
+        guard let image = renderer.nsImage else { return }
+        image.isTemplate = true  // adapt to the menu bar's light/dark appearance
+        menuBarImage = image
     }
 
     private func truncate(_ string: String) -> String {
