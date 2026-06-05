@@ -19,3 +19,9 @@ struct SportEvent: Identifiable {
     /// Higher sorts first. Convention: live-favorite > live > pre-favorite > pre > final.
     let sortPriority: Int
 }
+
+extension SportEvent {
+    /// Convenience flags over `state`.
+    var isLive: Bool { if case .live = state { return true } else { return false } }
+    var isFinal: Bool { if case .final = state { return true } else { return false } }
+}

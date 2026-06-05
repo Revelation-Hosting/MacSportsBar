@@ -14,11 +14,17 @@ struct SupportedLeague: Identifiable {
 enum LeagueCatalog {
     static let all: [SupportedLeague] = {
         let nba = LeagueID(sport: "basketball", league: "nba", displayName: "NBA")
+        let mlb = LeagueID(sport: "baseball", league: "mlb", displayName: "MLB")
         return [
             SupportedLeague(
                 id: nba.league,
                 league: nba,
                 makeAdapter: { BasketballAdapter(league: nba, favorites: $0) }
+            ),
+            SupportedLeague(
+                id: mlb.league,
+                league: mlb,
+                makeAdapter: { BaseballAdapter(league: mlb, favorites: $0) }
             )
         ]
     }()

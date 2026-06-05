@@ -28,8 +28,11 @@ struct SettingsView: View {
                 Toggle("Cycle through multiple live games", isOn: $settings.cycleEnabled)
                 Stepper("Max length: \(settings.maxLength) characters",
                         value: $settings.maxLength, in: 12...80)
-                Stepper("Refresh every \(settings.refreshSeconds)s",
+                Stepper("Live refresh every \(settings.refreshSeconds)s",
                         value: $settings.refreshSeconds, in: 10...600, step: 5)
+                Text("Applies while games are live. When nothing is live, polling slows to every 5 minutes automatically.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
         }
         .formStyle(.grouped)

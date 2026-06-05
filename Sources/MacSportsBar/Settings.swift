@@ -11,7 +11,8 @@ final class Settings: ObservableObject {
     @Published var enabledLeagues: Set<String>
     /// Comma-separated favorite team names/abbreviations, matched case-insensitively.
     @Published var favorites: String
-    /// Poll cadence in seconds.
+    /// Poll cadence in seconds while games are live. (Idle polling slows automatically — see
+    /// `AppModel.pollInterval`.)
     @Published var refreshSeconds: Int
     /// Hard character limit for the menu-bar string.
     @Published var maxLength: Int
@@ -23,6 +24,7 @@ final class Settings: ObservableObject {
 
     private enum Key {
         static let enabledLeagues = "enabledLeagues"
+        static let seenLeagues = "seenLeagues"
         static let favorites = "favorites"
         static let refreshSeconds = "refreshSeconds"
         static let maxLength = "maxLength"
@@ -31,8 +33,20 @@ final class Settings: ObservableObject {
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
-        let storedLeagues = defaults.array(forKey: Key.enabledLeagues) as? [String]
-        enabledLeagues = Set(storedLeagues ?? LeagueCatalog.all.map(\.id))
+        let allLeagueIDs = LeagueCatalog.all.map(\.id)
+        if let storedLeagues = defaults.array(forKey: Key.enabledLeagues) as? [String] {
+            // Returning user: auto-enable leagues added since they last ran (so new sports
+            // appear without a manual toggle), but never re-enable one they've turned off.
+            let seen = Set(defaults.array(forKey: Key.seenLeagues) as? [String] ?? [])
+            var enabled = Set(storedLeagues)
+            enabled.formUnion(allLeagueIDs.filter { !seen.contains($0) })
+            enabledLeagues = enabled
+            defaults.set(Array(enabled), forKey: Key.enabledLeagues)
+        } else {
+            // First run: everything on.
+            enabledLeagues = Set(allLeagueIDs)
+        }
+        defaults.set(allLeagueIDs, forKey: Key.seenLeagues)
         favorites = defaults.string(forKey: Key.favorites) ?? ""
         refreshSeconds = defaults.object(forKey: Key.refreshSeconds) as? Int ?? 30
         maxLength = defaults.object(forKey: Key.maxLength) as? Int ?? 40

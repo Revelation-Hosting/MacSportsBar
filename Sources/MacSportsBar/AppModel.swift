@@ -23,6 +23,11 @@ final class AppModel: ObservableObject {
     /// How fast the menu bar rotates when several events are relevant at once.
     private let cyclePeriod: Duration = .seconds(8)
 
+    /// Poll cadence when nothing relevant is live (spec §7 idle tier).
+    private let idleInterval: Duration = .seconds(300)
+    /// Cadence chosen after the last fetch, based on what's currently live.
+    private var currentInterval: Duration = .seconds(30)
+
     init(settings: Settings = .shared) {
         self.settings = settings
         observeSettings()
@@ -67,13 +72,14 @@ final class AppModel: ObservableObject {
 
     // MARK: - Polling
 
-    /// (Re)start the polling loop with the current cadence. First iteration fetches immediately.
+    /// (Re)start the polling loop. Each iteration fetches, then sleeps for an adaptive
+    /// interval chosen from what's currently live (spec §7). First iteration fetches at once.
     private func startPolling() {
         pollTask?.cancel()
-        let interval = Duration.seconds(max(5, settings.refreshSeconds))
         pollTask = Task { [weak self] in
             while !Task.isCancelled {
                 await self?.refresh()
+                let interval = self?.currentInterval ?? .seconds(60)
                 try? await Task.sleep(for: interval)
             }
         }
@@ -87,9 +93,22 @@ final class AppModel: ObservableObject {
         }
         let ranked = collected.sorted { $0.sortPriority > $1.sortPriority }
         events = ranked
+        currentInterval = pollInterval(for: ranked)
         cycleCandidates = Self.candidates(from: ranked)
         cycleIndex = cycleCandidates.isEmpty ? 0 : cycleIndex % cycleCandidates.count
         updateMenuBar()
+    }
+
+    /// Adaptive cadence (spec §7): tight while a favorite is live, moderate for any live
+    /// game, slow when nothing is live. `refreshSeconds` is the user's live-cadence knob.
+    private func pollInterval(for events: [SportEvent]) -> Duration {
+        if events.contains(where: { $0.isLive && $0.isFavorite }) {
+            return .seconds(max(5, min(10, settings.refreshSeconds)))
+        }
+        if events.contains(where: \.isLive) {
+            return .seconds(max(5, settings.refreshSeconds))
+        }
+        return idleInterval
     }
 
     // MARK: - Cycling display
