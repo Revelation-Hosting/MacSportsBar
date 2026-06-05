@@ -15,6 +15,10 @@ enum Entry {
     }
 }
 
+enum WindowID {
+    static let settings = "settings"
+}
+
 struct MacSportsBarApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @StateObject private var model = AppModel()
@@ -26,6 +30,11 @@ struct MacSportsBarApp: App {
             Text(model.menuBarText)
         }
         .menuBarExtraStyle(.menu)
+
+        Window("MacSportsBar Settings", id: WindowID.settings) {
+            SettingsView()
+        }
+        .windowResizability(.contentSize)
     }
 }
 

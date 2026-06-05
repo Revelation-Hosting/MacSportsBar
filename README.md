@@ -86,10 +86,10 @@ Once running, MacSportsBar appears as a short score string in the menu bar with 
 icon. Click it to open the popover, then choose **Settings…** to:
 
 - Toggle which sports are shown.
-- Set favorite teams/drivers (matched case-insensitively against the feed).
-- Override refresh cadence (sensible defaults are built in).
-- Choose the display strategy (cycle through live events vs. pin a primary sport) and the
-  maximum string length.
+- Set favorite teams (comma-separated, matched case-insensitively against the feed).
+  Favorite games sort to the front.
+- Override the refresh cadence.
+- Toggle cycling through multiple live games, and set the maximum string length.
 
 Settings persist automatically.
 
@@ -118,7 +118,7 @@ Full architecture, per-sport display formats, and polling policy are documented 
 
 - **M1** — Basketball vertical slice (**NBA** for the POC; NCAA is off-season in June):
   prove fetch → decode → format → display. ✅ **done**
-- **M2** — Settings window, favorites, event ranking, truncation.
+- **M2** — Settings window, favorites, ranking, cycling display, truncation. ✅ **done**
 - **M3** — Add MLB (bases/outs) and NBA; adaptive polling.
 - **M4** — PGA golf leaderboard (intermittent handling).
 - **M5** — NASCAR Cup (live telemetry, with a degraded fallback).

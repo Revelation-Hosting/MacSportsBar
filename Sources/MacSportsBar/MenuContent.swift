@@ -1,9 +1,11 @@
 import SwiftUI
+import AppKit
 
 /// The dropdown shown when the menu-bar item is clicked. With `.menuBarExtraStyle(.menu)`
 /// each top-level view becomes a native menu item.
 struct MenuContent: View {
     @ObservedObject var model: AppModel
+    @Environment(\.openWindow) private var openWindow
 
     var body: some View {
         if model.events.isEmpty {
@@ -19,6 +21,11 @@ struct MenuContent: View {
         Button("Refresh Now") {
             Task { await model.refresh() }
         }
+        Button("Settings…") {
+            NSApp.activate(ignoringOtherApps: true)
+            openWindow(id: WindowID.settings)
+        }
+        .keyboardShortcut(",")
         Button("Quit MacSportsBar") {
             NSApplication.shared.terminate(nil)
         }
