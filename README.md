@@ -12,10 +12,10 @@ Coca-Cola 600 · L245/400 · St3 · #5 Larson   ← live NASCAR Cup
 ```
 
 > **Status: pre-alpha proof-of-concept.** Under active development, built milestone by
-> milestone (see [Roadmap](#roadmap)). Live **NBA**, **MLB** (with base/out state), and
-> **PGA** golf scores render in the menu bar today — each tagged with a league glyph, on an
-> adaptive poll cadence. NASCAR is still to come, and there's no packaged release yet — you
-> run it by building from source.
+> milestone (see [Roadmap](#roadmap)). Live **NBA**, **MLB** (with base/out state), **PGA**
+> golf, and **NASCAR** Cup scores render in the menu bar today — each tagged with a league
+> glyph, on an adaptive poll cadence. (NASCAR currently shows the leader/winner; live
+> lap/stage telemetry is a planned upgrade — see the roadmap.)
 
 ---
 
@@ -42,7 +42,7 @@ Coca-Cola 600 · L245/400 · St3 · #5 Larson   ← live NASCAR Cup
 | Basketball       | NBA, NCAA Men's                 | head-to-head   | **NBA live (M1)** |
 | Baseball         | MLB                             | head-to-head   | **MLB live (M3)** |
 | Golf             | PGA                             | leaderboard    | **PGA live (M4)** |
-| Auto racing      | NASCAR Cup                      | field          | planned  |
+| Auto racing      | NASCAR Cup                      | field          | **NASCAR live (M5)** |
 
 See the full design in **[menubar-sports-app-spec.md](menubar-sports-app-spec.md)**.
 
@@ -126,7 +126,9 @@ Full architecture, per-sport display formats, and polling policy are documented 
 - **M3** — MLB with live base/out state + adaptive polling (NBA landed early in M1). ✅ **done**
 - **M4** — PGA golf leaderboard (intermittent handling). ✅ **done** (endpoint confirmed:
   `golf/pga/scoreboard`)
-- **M5** — NASCAR Cup (live telemetry, with a degraded fallback).
+- **M5** — NASCAR Cup. ✅ **done (degraded)** — shows the leader/winner + race time. Live
+  lap/stage/leader telemetry (from the per-event detail endpoint) needs a green-flag Cup race
+  to verify the field paths; that upgrade is pending.
 - **M6** — Polish: cycling display, edge cases (postponed/OT/rain delay), error states.
 
 ---
