@@ -18,6 +18,8 @@ final class Settings: ObservableObject {
     @Published var maxLength: Int
     /// Rotate through multiple relevant events instead of showing only the top one.
     @Published var cycleEnabled: Bool
+    /// When on (and favorites are set), the ticker shows only favorite teams' games.
+    @Published var favoritesOnly: Bool
 
     private let defaults: UserDefaults
     private var cancellables = Set<AnyCancellable>()
@@ -29,6 +31,7 @@ final class Settings: ObservableObject {
         static let refreshSeconds = "refreshSeconds"
         static let maxLength = "maxLength"
         static let cycleEnabled = "cycleEnabled"
+        static let favoritesOnly = "favoritesOnly"
     }
 
     init(defaults: UserDefaults = .standard) {
@@ -51,12 +54,14 @@ final class Settings: ObservableObject {
         refreshSeconds = defaults.object(forKey: Key.refreshSeconds) as? Int ?? 30
         maxLength = defaults.object(forKey: Key.maxLength) as? Int ?? 40
         cycleEnabled = defaults.object(forKey: Key.cycleEnabled) as? Bool ?? true
+        favoritesOnly = defaults.object(forKey: Key.favoritesOnly) as? Bool ?? false
 
         persist($enabledLeagues) { [weak self] in self?.defaults.set(Array($0), forKey: Key.enabledLeagues) }
         persist($favorites) { [weak self] in self?.defaults.set($0, forKey: Key.favorites) }
         persist($refreshSeconds) { [weak self] in self?.defaults.set($0, forKey: Key.refreshSeconds) }
         persist($maxLength) { [weak self] in self?.defaults.set($0, forKey: Key.maxLength) }
         persist($cycleEnabled) { [weak self] in self?.defaults.set($0, forKey: Key.cycleEnabled) }
+        persist($favoritesOnly) { [weak self] in self?.defaults.set($0, forKey: Key.favoritesOnly) }
     }
 
     /// Parsed, lowercased favorite tokens used for matching against feed names.

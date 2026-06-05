@@ -22,6 +22,10 @@ struct SettingsView: View {
                 Text("Comma-separated. Matched case-insensitively against team names and abbreviations; favorite games sort to the front.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                Toggle("Show favorite teams only", isOn: $settings.favoritesOnly)
+                Text("When on, the menu bar shows only your favorite teams' games.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
 
             Section("Display") {

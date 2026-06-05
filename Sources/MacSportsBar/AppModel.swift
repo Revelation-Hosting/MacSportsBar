@@ -19,6 +19,8 @@ final class AppModel: ObservableObject {
     private var cycleTask: Task<Void, Never>?
     private var cycleIndex = 0
     private var cycleCandidates: [SportEvent] = []
+    /// Latest fetched + ranked events, before the favorites-only display filter is applied.
+    private var lastRanked: [SportEvent] = []
 
     /// How fast the menu bar rotates when several events are relevant at once.
     private let cyclePeriod: Duration = .seconds(8)
@@ -50,14 +52,15 @@ final class AppModel: ObservableObject {
             .sink { [weak self] in self?.startPolling() }
             .store(in: &cancellables)
 
-        // Display-only changes → just re-render the current data.
+        // Display-only changes → re-derive the shown set from the last fetch (no refetch).
         let displayChanges: [AnyPublisher<Void, Never>] = [
             settings.$maxLength.dropFirst().map { _ in () }.eraseToAnyPublisher(),
             settings.$cycleEnabled.dropFirst().map { _ in () }.eraseToAnyPublisher(),
+            settings.$favoritesOnly.dropFirst().map { _ in () }.eraseToAnyPublisher(),
         ]
         Publishers.MergeMany(displayChanges)
             .receive(on: RunLoop.main)
-            .sink { [weak self] in self?.updateMenuBar() }
+            .sink { [weak self] in self?.applyDisplay() }
             .store(in: &cancellables)
     }
 
@@ -91,10 +94,19 @@ final class AppModel: ObservableObject {
             do { collected += try await adapter.fetch(using: client) }
             catch { continue }  // one sport failing must never take down the others
         }
-        let ranked = collected.sorted { $0.sortPriority > $1.sortPriority }
-        events = ranked
-        currentInterval = pollInterval(for: ranked)
-        cycleCandidates = Self.candidates(from: ranked)
+        lastRanked = collected.sorted { $0.sortPriority > $1.sortPriority }
+        applyDisplay()
+    }
+
+    /// Derive what's shown from `lastRanked`: apply the favorites-only filter, recompute the
+    /// cycle set and poll cadence, and refresh the menu-bar string. Cheap — no network.
+    private func applyDisplay() {
+        let shown = (settings.favoritesOnly && !settings.favoriteTokens.isEmpty)
+            ? lastRanked.filter(\.isFavorite)
+            : lastRanked
+        events = shown
+        currentInterval = pollInterval(for: shown)
+        cycleCandidates = Self.candidates(from: shown)
         cycleIndex = cycleCandidates.isEmpty ? 0 : cycleIndex % cycleCandidates.count
         updateMenuBar()
     }
@@ -141,7 +153,13 @@ final class AppModel: ObservableObject {
         } else {
             chosen = events.first
         }
-        menuBarText = chosen.map { truncate($0.displayString) } ?? "No games"
+        if let chosen {
+            menuBarText = truncate(chosen.displayString)
+        } else if settings.favoritesOnly, !settings.favoriteTokens.isEmpty {
+            menuBarText = "No favorite games"
+        } else {
+            menuBarText = "No games"
+        }
     }
 
     private func truncate(_ string: String) -> String {
