@@ -20,7 +20,9 @@ struct BasketballAdapter: SportAdapter {
 
     // MARK: - Mapping
 
-    private func map(_ event: Scoreboard.Event) -> SportEvent? {
+    /// Maps one decoded ESPN event into a normalized `SportEvent`, or `nil` if it lacks the
+    /// minimum two competitors. Pure (no I/O) — the seam the formatting tests exercise.
+    func map(_ event: Scoreboard.Event) -> SportEvent? {
         guard let competition = event.competitions?.first else { return nil }
         let competitors = competition.competitors ?? []
         guard competitors.count >= 2 else { return nil }
@@ -77,7 +79,7 @@ struct BasketballAdapter: SportAdapter {
     }
 
     /// NBA: Q1–Q4 then OT/2OT. NCAA Men's: 1H/2H then OT/2OT.
-    private func periodLabel(_ period: Int?) -> String {
+    func periodLabel(_ period: Int?) -> String {
         guard let period, period > 0 else { return "" }
         if league.league == "nba" {
             if period <= 4 { return "Q\(period)" }
