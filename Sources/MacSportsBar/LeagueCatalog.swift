@@ -15,6 +15,7 @@ enum LeagueCatalog {
     static let all: [SupportedLeague] = {
         let nba = LeagueID(sport: "basketball", league: "nba", displayName: "NBA")
         let mlb = LeagueID(sport: "baseball", league: "mlb", displayName: "MLB")
+        let pga = LeagueID(sport: "golf", league: "pga", displayName: "PGA")
         return [
             SupportedLeague(
                 id: nba.league,
@@ -25,6 +26,11 @@ enum LeagueCatalog {
                 id: mlb.league,
                 league: mlb,
                 makeAdapter: { BaseballAdapter(league: mlb, favorites: $0) }
+            ),
+            SupportedLeague(
+                id: pga.league,
+                league: pga,
+                makeAdapter: { GolfAdapter(league: pga, favorites: $0) }
             )
         ]
     }()

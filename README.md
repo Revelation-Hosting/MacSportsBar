@@ -12,9 +12,10 @@ Coca-Cola 600 · L245/400 · St3 · #5 Larson   ← live NASCAR Cup
 ```
 
 > **Status: pre-alpha proof-of-concept.** Under active development, built milestone by
-> milestone (see [Roadmap](#roadmap)). Live **NBA** and **MLB** scores (the latter with
-> base/out state) render in the menu bar today, on an adaptive poll cadence. Other sports
-> aren't implemented yet, and there's no packaged release — you run it by building from source.
+> milestone (see [Roadmap](#roadmap)). Live **NBA**, **MLB** (with base/out state), and
+> **PGA** golf scores render in the menu bar today — each tagged with a league glyph, on an
+> adaptive poll cadence. NASCAR is still to come, and there's no packaged release yet — you
+> run it by building from source.
 
 ---
 
@@ -40,7 +41,7 @@ Coca-Cola 600 · L245/400 · St3 · #5 Larson   ← live NASCAR Cup
 |------------------|---------------------------------|----------------|----------|
 | Basketball       | NBA, NCAA Men's                 | head-to-head   | **NBA live (M1)** |
 | Baseball         | MLB                             | head-to-head   | **MLB live (M3)** |
-| Golf             | PGA                             | leaderboard    | planned  |
+| Golf             | PGA                             | leaderboard    | **PGA live (M4)** |
 | Auto racing      | NASCAR Cup                      | field          | planned  |
 
 See the full design in **[menubar-sports-app-spec.md](menubar-sports-app-spec.md)**.
@@ -123,7 +124,8 @@ Full architecture, per-sport display formats, and polling policy are documented 
   prove fetch → decode → format → display. ✅ **done**
 - **M2** — Settings window, favorites, ranking, cycling display, truncation. ✅ **done**
 - **M3** — MLB with live base/out state + adaptive polling (NBA landed early in M1). ✅ **done**
-- **M4** — PGA golf leaderboard (intermittent handling).
+- **M4** — PGA golf leaderboard (intermittent handling). ✅ **done** (endpoint confirmed:
+  `golf/pga/scoreboard`)
 - **M5** — NASCAR Cup (live telemetry, with a degraded fallback).
 - **M6** — Polish: cycling display, edge cases (postponed/OT/rain delay), error states.
 
