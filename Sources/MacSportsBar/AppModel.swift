@@ -24,6 +24,7 @@ final class AppModel: ObservableObject {
     private let logos = LogoCache()
     private let settings: Settings
     private var cancellables = Set<AnyCancellable>()
+    private var themeObserver: NSObjectProtocol?
 
     private var pollTask: Task<Void, Never>?
     private var cycleTask: Task<Void, Never>?
@@ -51,10 +52,24 @@ final class AppModel: ObservableObject {
     init(settings: Settings = .shared) {
         self.settings = settings
         observeSettings()
+        observeAppearance()
         logos.onLoad = { [weak self] in self?.updateMenuBar() }
         if settings.notifyFavorites { notifications.requestAuthorizationIfNeeded() }
         startPolling()
         startCycling()
+    }
+
+    /// Re-render the menu bar when the system switches light/dark. The team-logo layout uses a
+    /// non-template (color) image whose glyph + text don't auto-adapt like a normal menu-bar
+    /// item — without this they'd stay in the old appearance's color (e.g. invisible after a
+    /// switch to dark mode).
+    private func observeAppearance() {
+        themeObserver = DistributedNotificationCenter.default().addObserver(
+            forName: Notification.Name("AppleInterfaceThemeChangedNotification"),
+            object: nil, queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in self?.updateMenuBar() }
+        }
     }
 
     // MARK: - Settings reactivity
