@@ -16,8 +16,12 @@ final class Settings: ObservableObject {
     @Published var refreshSeconds: Int
     /// Hard character limit for the menu-bar string.
     @Published var maxLength: Int
-    /// Rotate through multiple relevant events instead of showing only the top one.
-    @Published var cycleEnabled: Bool
+    /// Include your favorites' recent finals in the menu-bar rotation. (Live games always rotate.)
+    @Published var cycleFinished: Bool
+    /// Include your favorites' upcoming games in the menu-bar rotation.
+    @Published var cycleUpcoming: Bool
+    /// Event id pinned to the menu bar, overriding the rotation, or nil for none.
+    @Published var pinnedEventID: String?
     /// When on (and favorites are set), the ticker shows only favorite teams' games.
     @Published var favoritesOnly: Bool
     /// Notify on boundary events (new period/inning/half + final) for favorite teams.
@@ -37,7 +41,9 @@ final class Settings: ObservableObject {
         static let favorites = "favorites"
         static let refreshSeconds = "refreshSeconds"
         static let maxLength = "maxLength"
-        static let cycleEnabled = "cycleEnabled"
+        static let cycleFinished = "cycleFinished"
+        static let cycleUpcoming = "cycleUpcoming"
+        static let pinnedEventID = "pinnedEventID"
         static let favoritesOnly = "favoritesOnly"
         static let notifyFavorites = "notifyFavorites"
         static let teamFavorites = "teamFavorites"
@@ -63,7 +69,9 @@ final class Settings: ObservableObject {
         favorites = defaults.string(forKey: Key.favorites) ?? ""
         refreshSeconds = defaults.object(forKey: Key.refreshSeconds) as? Int ?? 30
         maxLength = defaults.object(forKey: Key.maxLength) as? Int ?? 40
-        cycleEnabled = defaults.object(forKey: Key.cycleEnabled) as? Bool ?? true
+        cycleFinished = defaults.object(forKey: Key.cycleFinished) as? Bool ?? true
+        cycleUpcoming = defaults.object(forKey: Key.cycleUpcoming) as? Bool ?? true
+        pinnedEventID = defaults.string(forKey: Key.pinnedEventID)
         favoritesOnly = defaults.object(forKey: Key.favoritesOnly) as? Bool ?? false
         notifyFavorites = defaults.object(forKey: Key.notifyFavorites) as? Bool ?? false
         if let data = defaults.data(forKey: Key.teamFavorites),
@@ -78,7 +86,12 @@ final class Settings: ObservableObject {
         persist($favorites) { [weak self] in self?.defaults.set($0, forKey: Key.favorites) }
         persist($refreshSeconds) { [weak self] in self?.defaults.set($0, forKey: Key.refreshSeconds) }
         persist($maxLength) { [weak self] in self?.defaults.set($0, forKey: Key.maxLength) }
-        persist($cycleEnabled) { [weak self] in self?.defaults.set($0, forKey: Key.cycleEnabled) }
+        persist($cycleFinished) { [weak self] in self?.defaults.set($0, forKey: Key.cycleFinished) }
+        persist($cycleUpcoming) { [weak self] in self?.defaults.set($0, forKey: Key.cycleUpcoming) }
+        persist($pinnedEventID) { [weak self] value in
+            if let value { self?.defaults.set(value, forKey: Key.pinnedEventID) }
+            else { self?.defaults.removeObject(forKey: Key.pinnedEventID) }
+        }
         persist($favoritesOnly) { [weak self] in self?.defaults.set($0, forKey: Key.favoritesOnly) }
         persist($notifyFavorites) { [weak self] in self?.defaults.set($0, forKey: Key.notifyFavorites) }
         persist($teamFavorites) { [weak self] favorites in

@@ -47,7 +47,10 @@ struct SettingsView: View {
             }
 
             Section("Display") {
-                Toggle("Cycle through multiple live games", isOn: $settings.cycleEnabled)
+                Toggle("Show finished games in rotation", isOn: $settings.cycleFinished)
+                Toggle("Show upcoming games in rotation", isOn: $settings.cycleUpcoming)
+                Text("Live games always rotate. These add your favorites' recent finals and upcoming games to the cycle — pin a game from the menu to keep one fixed instead.")
+                    .font(.caption).foregroundStyle(.secondary)
                 Stepper("Max length: \(settings.maxLength) characters",
                         value: $settings.maxLength, in: 12...80)
                 Stepper("Live refresh every \(settings.refreshSeconds)s",

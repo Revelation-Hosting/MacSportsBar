@@ -139,7 +139,8 @@ icon. Click it to open the popover, then choose **Settings…** to:
   for golf/NASCAR. Favorite games sort to the front, can restrict the ticker, and drive
   notifications.
 - Override the refresh cadence and toggle favorites-only notifications.
-- Toggle cycling through multiple live games, and set the maximum string length.
+- Choose whether recent finals and upcoming favorites join the rotation (live always rotates),
+  **pin a game** from the menu to keep one fixed, and set the maximum string length.
 
 Settings persist automatically.
 

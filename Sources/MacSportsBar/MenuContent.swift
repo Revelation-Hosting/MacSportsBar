@@ -15,14 +15,14 @@ struct MenuContent: View {
         if !digest.isEmpty {
             Text("Favorites")
             ForEach(digest.prefix(12)) { event in
-                Label(event.displayString, systemImage: event.league.symbolName)
+                gameRow(event)
             }
         }
 
         if !others.isEmpty {
             if !digest.isEmpty { Divider() }
             ForEach(others.prefix(8)) { event in
-                Label(event.displayString, systemImage: event.league.symbolName)
+                gameRow(event)
             }
         }
 
@@ -44,5 +44,15 @@ struct MenuContent: View {
             NSApplication.shared.terminate(nil)
         }
         .keyboardShortcut("q")
+    }
+
+    /// A clickable game row that pins/unpins the game in the menu bar; the pinned one shows 📌.
+    private func gameRow(_ event: SportEvent) -> some View {
+        Button {
+            model.togglePin(event.id)
+        } label: {
+            Label(model.isPinned(event.id) ? "\(event.displayString)  📌" : event.displayString,
+                  systemImage: event.league.symbolName)
+        }
     }
 }

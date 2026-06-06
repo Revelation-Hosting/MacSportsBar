@@ -79,7 +79,9 @@ final class AppModel: ObservableObject {
         // Display-only changes → re-derive the shown set from the last fetch (no refetch).
         let displayChanges: [AnyPublisher<Void, Never>] = [
             settings.$maxLength.dropFirst().map { _ in () }.eraseToAnyPublisher(),
-            settings.$cycleEnabled.dropFirst().map { _ in () }.eraseToAnyPublisher(),
+            settings.$cycleFinished.dropFirst().map { _ in () }.eraseToAnyPublisher(),
+            settings.$cycleUpcoming.dropFirst().map { _ in () }.eraseToAnyPublisher(),
+            settings.$pinnedEventID.dropFirst().map { _ in () }.eraseToAnyPublisher(),
             settings.$favoritesOnly.dropFirst().map { _ in () }.eraseToAnyPublisher(),
             settings.$showTeamLogos.dropFirst().map { _ in () }.eraseToAnyPublisher(),
         ]
@@ -209,21 +211,43 @@ final class AppModel: ObservableObject {
                                     hasFavorites: settings.hasAnyFavorites)
         events = shown
         currentInterval = pollInterval(for: shown)
-        cycleCandidates = candidatesWithWindow(from: shown)
+        cycleCandidates = rotationCandidates(from: shown)
         cycleIndex = cycleCandidates.isEmpty ? 0 : cycleIndex % cycleCandidates.count
         updateMenuBar()
     }
 
-    /// Cycle set: the base candidates (live, else favorites, else top) plus the favorites
-    /// window's recent finals and upcoming games, so your team's last result and next game
-    /// rotate through the ticker too.
-    private func candidatesWithWindow(from shown: [SportEvent]) -> [SportEvent] {
-        var result = Self.candidates(from: shown)
+    private func rotationCandidates(from shown: [SportEvent]) -> [SportEvent] {
+        Self.rotationSet(
+            live: shown.filter(\.isLive),
+            windowNonLive: favoritesDigest.filter { !$0.isLive },
+            includeFinished: settings.cycleFinished,
+            includeUpcoming: settings.cycleUpcoming,
+            fallback: shown)
+    }
+
+    /// The rotation set: live games always, plus the favorites window's recent finals and/or
+    /// upcoming games per the two switches. Falls back to the single top event when nothing's
+    /// live and neither switch contributes. Pure — the seam the tests exercise.
+    nonisolated static func rotationSet(
+        live: [SportEvent], windowNonLive: [SportEvent],
+        includeFinished: Bool, includeUpcoming: Bool, fallback: [SportEvent]
+    ) -> [SportEvent] {
+        var result = live
         var seen = Set(result.map(\.id))
-        for event in favoritesDigest where !event.isLive {
-            if seen.insert(event.id).inserted { result.append(event) }
+        for event in windowNonLive {
+            let include = event.isFinal ? includeFinished : includeUpcoming
+            if include, seen.insert(event.id).inserted { result.append(event) }
         }
-        return result
+        return result.isEmpty ? Array(fallback.prefix(1)) : result
+    }
+
+    // MARK: - Pinning
+
+    func isPinned(_ id: String) -> Bool { settings.pinnedEventID == id }
+
+    /// Pin a game to the menu bar (overriding rotation), or unpin if it's already pinned.
+    func togglePin(_ id: String) {
+        settings.pinnedEventID = (settings.pinnedEventID == id) ? nil : id
     }
 
     /// Adaptive cadence (spec §7): tight while a favorite is live, moderate for any live
@@ -252,7 +276,7 @@ final class AppModel: ObservableObject {
     }
 
     private func advanceCycle() {
-        guard settings.cycleEnabled, cycleCandidates.count > 1 else { return }
+        guard settings.pinnedEventID == nil, cycleCandidates.count > 1 else { return }
         cycleIndex = (cycleIndex + 1) % cycleCandidates.count
         updateMenuBar()
     }
@@ -265,11 +289,16 @@ final class AppModel: ObservableObject {
             menuBarText = "No sports enabled"
             menuBarSymbol = "sportscourt.fill"
         } else {
+            let pinned = settings.pinnedEventID.flatMap { id in
+                (lastRanked + favoritesDigest).first { $0.id == id }
+            }
             let chosen: SportEvent?
-            if settings.cycleEnabled, cycleCandidates.count > 1 {
+            if let pinned {
+                chosen = pinned
+            } else if cycleCandidates.count > 1 {
                 chosen = cycleCandidates[cycleIndex % cycleCandidates.count]
             } else {
-                chosen = events.first
+                chosen = cycleCandidates.first ?? events.first
             }
             if let chosen {
                 menuBarText = truncate(chosen.displayString)
