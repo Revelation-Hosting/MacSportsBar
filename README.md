@@ -14,10 +14,11 @@ Coca-Cola 600 · L245/400 · St3 · #5 Larson   ← live NASCAR Cup
 ```
 
 > **Status: pre-alpha proof-of-concept.** Under active development, built milestone by
-> milestone (see [Roadmap](#roadmap)). Live **NBA**, **MLB** (with base/out state), **PGA**
-> golf, and **NASCAR** Cup scores render in the menu bar today — each tagged with a league
-> glyph, on an adaptive poll cadence. (NASCAR currently shows the leader/winner; live
-> lap/stage telemetry is a planned upgrade — see the roadmap.)
+> milestone (see [Roadmap](#roadmap)). **Ten leagues across seven sports** — NBA, MLB, NFL,
+> NHL, NCAA football, soccer (Premier League / Champions League / MLS), PGA golf, and NASCAR
+> — render in the menu bar today, each tagged with a league glyph, on an adaptive poll
+> cadence. (NASCAR currently shows the leader/winner; live lap/stage telemetry is a planned
+> upgrade — see the roadmap.)
 
 ---
 
@@ -41,10 +42,13 @@ Coca-Cola 600 · L245/400 · St3 · #5 Larson   ← live NASCAR Cup
 
 | Sport            | Leagues                         | Shape          | Status   |
 |------------------|---------------------------------|----------------|----------|
-| Basketball       | NBA, NCAA Men's                 | head-to-head   | **NBA live (M1)** |
-| Baseball         | MLB                             | head-to-head   | **MLB live (M3)** |
-| Golf             | PGA                             | leaderboard    | **PGA live (M4)** |
-| Auto racing      | NASCAR Cup                      | field          | **NASCAR live (M5)** |
+| Basketball       | NBA                             | head-to-head   | **live (M1)** |
+| Baseball         | MLB (base/out state)            | head-to-head   | **live (M3)** |
+| Football         | NFL, NCAA football              | head-to-head   | **live (M6)** |
+| Hockey           | NHL                             | head-to-head   | **live (M6)** |
+| Soccer           | Premier League, UCL, MLS        | head-to-head   | **live (M6)** |
+| Golf             | PGA                             | leaderboard    | **live (M4)** |
+| Auto racing      | NASCAR Cup                      | field          | **live (M5, degraded)** |
 
 See the full design in **[menubar-sports-app-spec.md](menubar-sports-app-spec.md)**.
 
@@ -166,7 +170,12 @@ Full architecture, per-sport display formats, and polling policy are documented 
 - **M5** — NASCAR Cup. ✅ **done (degraded)** — shows the leader/winner + race time. Live
   lap/stage/leader telemetry (from the per-event detail endpoint) needs a green-flag Cup race
   to verify the field paths; that upgrade is pending.
-- **M6** — Polish: cycling display, edge cases (postponed/OT/rain delay), error states.
+- **M6** — League expansion: NFL, NHL, NCAA football, and soccer (Premier League / Champions
+  League / MLS) on a shared head-to-head adapter, each with its own glyph. ✅ **done**
+- **M7** — Score notifications, scoped to boundaries (end of period/inning/half + final),
+  favorites-only. (Uses the bundled `.app` for notification permission.)
+- **M8** — Polish: team-logos opt-in toggle, an app icon, live NASCAR lap/stage telemetry,
+  and edge cases (postponed/OT/rain delay).
 
 ---
 

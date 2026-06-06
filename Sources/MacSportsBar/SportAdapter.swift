@@ -17,6 +17,9 @@ extension LeagueID {
         switch sport {
         case "basketball": return "basketball.fill"
         case "baseball":   return "baseball.fill"
+        case "football":   return "football.fill"
+        case "hockey":     return "hockey.puck.fill"
+        case "soccer":     return "soccerball"
         case "golf":       return "figure.golf"
         case "racing":     return "flag.checkered"
         default:           return "sportscourt.fill"
