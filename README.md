@@ -108,10 +108,11 @@ General ▸ Login Items** to start it at login.
 
 ## Tests
 
-The deterministic model and formatting logic is covered by an XCTest suite — period labels
-(NBA quarters vs NCAA halves, including OT), menu-bar truncation, favorites parsing,
-cycle-candidate selection, and decode-and-format checks against both hand-crafted JSON and
-a captured real ESPN scoreboard payload.
+The deterministic model and formatting logic is covered by **60 hermetic XCTest cases** —
+every adapter's decode → format path (basketball; baseball with base/out state; the generic
+head-to-head adapter for football, hockey, and soccer; the golf leaderboard; and NASCAR),
+period/inning labels, menu-bar truncation and cycle selection, favorites matching, and the
+league auto-enable migration. Fixtures are inline JSON or a captured real ESPN payload.
 
 ```bash
 swift test
