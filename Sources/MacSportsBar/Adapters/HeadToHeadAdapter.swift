@@ -133,10 +133,12 @@ struct HeadToHeadAdapter: SportAdapter {
     /// off-season game months away (NFL/NCAAF in summer) isn't shown as a bare time.
     private func preLabel(_ date: Date?, fallback status: Scoreboard.Status?) -> String {
         guard let date else { return status?.type?.shortDetail ?? "" }
-        if Calendar.current.isDateInToday(date) {
-            return Self.timeFormatter.string(from: date)
+        // Within a week, show weekday + time ("Sat 10:10a"); further out, a date, since a
+        // weekday alone (an off-season opener months away) is ambiguous.
+        if date.timeIntervalSinceNow < 6 * 24 * 3600 {
+            return Self.timeFormatter.string(from: date)   // "EEE h:mma"
         }
-        return Self.dateFormatter.string(from: date)
+        return Self.dateFormatter.string(from: date)        // "EEE M/d"
     }
 
     private func abbr(of competitor: Scoreboard.Competitor) -> String {
@@ -182,7 +184,7 @@ struct HeadToHeadAdapter: SportAdapter {
 
     private static let timeFormatter: DateFormatter = {
         let f = DateFormatter()
-        f.dateFormat = "h:mma"
+        f.dateFormat = "EEE h:mma"
         f.amSymbol = "a"
         f.pmSymbol = "p"
         return f

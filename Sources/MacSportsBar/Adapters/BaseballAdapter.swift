@@ -139,7 +139,7 @@ struct BaseballAdapter: SportAdapter {
 
     private static let timeFormatter: DateFormatter = {
         let f = DateFormatter()
-        f.dateFormat = "h:mma"
+        f.dateFormat = "EEE h:mma"
         f.amSymbol = "a"
         f.pmSymbol = "p"
         return f

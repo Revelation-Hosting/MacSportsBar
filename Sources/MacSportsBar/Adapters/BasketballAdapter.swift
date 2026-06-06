@@ -153,7 +153,7 @@ struct BasketballAdapter: SportAdapter {
     // Local-time start label, e.g. `8:30p`.
     private static let timeFormatter: DateFormatter = {
         let f = DateFormatter()
-        f.dateFormat = "h:mma"
+        f.dateFormat = "EEE h:mma"
         f.amSymbol = "a"
         f.pmSymbol = "p"
         return f
