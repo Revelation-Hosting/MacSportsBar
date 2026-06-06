@@ -188,13 +188,19 @@ final class AppModel: ObservableObject {
     }
 
     private func truncate(_ string: String) -> String {
-        let limit = max(8, settings.maxLength)
+        Self.truncate(string, limit: settings.maxLength)
+    }
+
+    /// Hard character cap with an ellipsis. The limit is floored at 8 so the result is never
+    /// uselessly short. Pure (no actor state) so the formatting tests can call it directly.
+    nonisolated static func truncate(_ string: String, limit: Int) -> String {
+        let limit = max(8, limit)
         guard string.count > limit else { return string }
         return String(string.prefix(limit - 1)) + "…"
     }
 
     /// Events worth cycling through: all live games, else favorites, else just the top one.
-    private static func candidates(from ranked: [SportEvent]) -> [SportEvent] {
+    nonisolated static func candidates(from ranked: [SportEvent]) -> [SportEvent] {
         let live = ranked.filter { if case .live = $0.state { return true } else { return false } }
         if !live.isEmpty { return live }
         let favorites = ranked.filter(\.isFavorite)

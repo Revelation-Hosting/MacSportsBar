@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Cancel superseded runs on the same ref so a quick succession of pushes doesn't queue up.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build-test:
+    name: Build & Test
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Pin the toolchain to the latest stable Xcode on the runner image. The package needs
+      # only Swift 5.9 tools and a macOS 14 deployment target, so any current Xcode works;
+      # selecting explicitly keeps builds reproducible if the image default shifts.
+      - name: Select Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - name: Show toolchain versions
+        run: |
+          swift --version
+          xcodebuild -version
+
+      - name: Build
+        run: swift build
+
+      # The test suite is fully hermetic (fixtures are bundled/inline, no network), so it
+      # runs the same locally and in CI.
+      - name: Test
+        run: swift test

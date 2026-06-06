@@ -10,6 +10,16 @@ let package = Package(
         .executableTarget(
             name: "MacSportsBar",
             path: "Sources/MacSportsBar"
+        ),
+        .testTarget(
+            name: "MacSportsBarTests",
+            dependencies: ["MacSportsBar"],
+            path: "Tests/MacSportsBarTests",
+            resources: [
+                // The captured real ESPN payload; copied verbatim so the decode test can
+                // load it via `Bundle.module`.
+                .copy("Fixtures")
+            ]
         )
     ]
 )

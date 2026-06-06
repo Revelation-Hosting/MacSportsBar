@@ -1,5 +1,7 @@
 # MacSportsBar
 
+[![CI](https://github.com/Revelation-Hosting/MacSportsBar/actions/workflows/ci.yml/badge.svg)](https://github.com/Revelation-Hosting/MacSportsBar/actions/workflows/ci.yml)
+
 A native macOS **menu bar app** that shows live sports scores as a compact, glanceable
 string in the system menu bar — a tiny always-there scoreboard, no dock icon and no
 window in the way.
@@ -97,6 +99,25 @@ General ▸ Login Items** to start it at login.
 > Distributing the `.app` to *other* people's machines still trips Gatekeeper on their end;
 > for a seamless install you'd sign + notarize with an Apple Developer account ($99/yr). That
 > remains out of scope for the POC.
+
+---
+
+## Tests
+
+The deterministic model and formatting logic is covered by an XCTest suite — period labels
+(NBA quarters vs NCAA halves, including OT), menu-bar truncation, favorites parsing,
+cycle-candidate selection, and decode-and-format checks against both hand-crafted JSON and
+a captured real ESPN scoreboard payload.
+
+```bash
+swift test
+```
+
+The suite is **fully hermetic** — fixtures are bundled or inline, so no network is touched
+and the tests run identically locally and in [CI](.github/workflows/ci.yml) (`swift build`
++ `swift test` on macOS for every push and pull request). UI scenes (`MenuBarExtra`, the
+settings `Window`) are intentionally **not** tested headlessly; coverage targets the pure
+logic.
 
 ---
 
