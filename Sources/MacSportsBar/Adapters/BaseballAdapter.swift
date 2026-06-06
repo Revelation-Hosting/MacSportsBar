@@ -46,14 +46,20 @@ struct BaseballAdapter: SportAdapter {
                                              home: homeAbbr, homeScore: home.score ?? "0", detail: detail))
         case "post":
             return SportEvent(id: id, league: league, state: .final, displayString: join(scoreLine, "Final"),
-                              isFavorite: isFav, sortPriority: isFav ? 300 : 100, date: gameDate)
+                              isFavorite: isFav, sortPriority: isFav ? 300 : 100, date: gameDate,
+                              awayLogo: logoURL(away), homeLogo: logoURL(home),
+                              matchup: .init(away: awayAbbr, awayScore: away.score ?? "0",
+                                             home: homeAbbr, homeScore: home.score ?? "0", detail: "Final"))
         default: // "pre"
             let start = parseDate(event.date)
             let timeLabel = start.map { Self.timeFormatter.string(from: $0) }
                 ?? (status?.type?.shortDetail ?? "")
             return SportEvent(id: id, league: league, state: .pre(startDate: start),
                               displayString: join("\(awayAbbr) vs \(homeAbbr)", timeLabel),
-                              isFavorite: isFav, sortPriority: isFav ? 600 : 400, date: gameDate)
+                              isFavorite: isFav, sortPriority: isFav ? 600 : 400, date: gameDate,
+                              awayLogo: logoURL(away), homeLogo: logoURL(home),
+                              matchup: .init(away: awayAbbr, awayScore: "",
+                                             home: homeAbbr, homeScore: "", detail: timeLabel))
         }
     }
 

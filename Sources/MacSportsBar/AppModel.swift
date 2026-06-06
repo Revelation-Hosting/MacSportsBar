@@ -297,18 +297,26 @@ final class AppModel: ObservableObject {
         let label: AnyView
         let isTemplate: Bool
         if let awayImage, let homeImage, let matchup = currentMatchup {
-            // [away logo] AWAY a - h HOME [home logo] · detail
+            // [league glyph] [away logo] AWAY a - h HOME [home logo] · detail
+            // ("AWAY vs HOME" for upcoming games, which have no score yet).
+            let score = matchup.awayScore.isEmpty
+                ? "\(matchup.away) vs \(matchup.home)"
+                : "\(matchup.away) \(matchup.awayScore) - \(matchup.homeScore) \(matchup.home)"
+            // Color logos force a non-template image, so the glyph + text won't auto-adapt —
+            // resolve `.primary` against the current menu-bar appearance instead.
+            let dark = NSApp.effectiveAppearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
             label = AnyView(
                 HStack(spacing: 4) {
+                    Image(systemName: menuBarSymbol)
                     Image(nsImage: awayImage).resizable().scaledToFit().frame(width: 15, height: 15)
-                    Text("\(matchup.away) \(matchup.awayScore) - \(matchup.homeScore) \(matchup.home)")
+                    Text(score)
                     Image(nsImage: homeImage).resizable().scaledToFit().frame(width: 15, height: 15)
-                    if !matchup.detail.isEmpty {
-                        Text("· \(matchup.detail)")
-                    }
-                }.font(.system(size: 13))
+                    if !matchup.detail.isEmpty { Text("· \(matchup.detail)") }
+                }
+                .font(.system(size: 13))
+                .environment(\.colorScheme, dark ? .dark : .light)
             )
-            isTemplate = false  // keep logo colors
+            isTemplate = false  // logos keep their colors
         } else {
             label = AnyView(
                 HStack(spacing: 4) {

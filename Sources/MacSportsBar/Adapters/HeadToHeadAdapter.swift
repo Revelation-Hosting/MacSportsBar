@@ -59,12 +59,19 @@ struct HeadToHeadAdapter: SportAdapter {
         case "post":
             return SportEvent(id: id, league: league, state: .final,
                               displayString: join(scoreLine, "Final"),
-                              isFavorite: isFav, sortPriority: isFav ? 300 : 100, date: gameDate)
+                              isFavorite: isFav, sortPriority: isFav ? 300 : 100, date: gameDate,
+                              awayLogo: logoURL(away), homeLogo: logoURL(home),
+                              matchup: .init(away: awayAbbr, awayScore: away.score ?? "0",
+                                             home: homeAbbr, homeScore: home.score ?? "0", detail: "Final"))
         default: // "pre"
             let start = parseDate(event.date)
+            let when = preLabel(start, fallback: status)
             return SportEvent(id: id, league: league, state: .pre(startDate: start),
-                              displayString: join("\(awayAbbr) vs \(homeAbbr)", preLabel(start, fallback: status)),
-                              isFavorite: isFav, sortPriority: isFav ? 600 : 400, date: gameDate)
+                              displayString: join("\(awayAbbr) vs \(homeAbbr)", when),
+                              isFavorite: isFav, sortPriority: isFav ? 600 : 400, date: gameDate,
+                              awayLogo: logoURL(away), homeLogo: logoURL(home),
+                              matchup: .init(away: awayAbbr, awayScore: "",
+                                             home: homeAbbr, homeScore: "", detail: when))
         }
     }
 

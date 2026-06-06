@@ -67,7 +67,11 @@ struct BasketballAdapter: SportAdapter {
                 displayString: join(scoreLine, "Final"),
                 isFavorite: isFav,
                 sortPriority: isFav ? 300 : 100,
-                date: gameDate
+                date: gameDate,
+                awayLogo: logoURL(away),
+                homeLogo: logoURL(home),
+                matchup: .init(away: awayAbbr, awayScore: away.score ?? "0",
+                               home: homeAbbr, homeScore: home.score ?? "0", detail: "Final")
             )
 
         default: // "pre"
@@ -81,7 +85,11 @@ struct BasketballAdapter: SportAdapter {
                 displayString: join("\(awayAbbr) vs \(homeAbbr)", timeLabel),
                 isFavorite: isFav,
                 sortPriority: isFav ? 600 : 400,
-                date: gameDate
+                date: gameDate,
+                awayLogo: logoURL(away),
+                homeLogo: logoURL(home),
+                matchup: .init(away: awayAbbr, awayScore: "",
+                               home: homeAbbr, homeScore: "", detail: timeLabel)
             )
         }
     }

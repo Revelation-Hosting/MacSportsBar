@@ -34,7 +34,7 @@ final class TeamLogoTests: XCTestCase {
         XCTAssertEqual(matchup.detail, "7:30 Q3")
     }
 
-    func testFinalHasNoLogos() throws {
+    func testFinalCarriesLogosAndMatchup() throws {
         let adapter = HeadToHeadAdapter(
             league: LeagueID(sport: "hockey", league: "nhl", displayName: "NHL"),
             favorites: [], style: .hockey)
@@ -46,8 +46,31 @@ final class TeamLogoTests: XCTestCase {
           ]}]}]}
         """)
         let mapped = try XCTUnwrap(adapter.map(event))
-        XCTAssertNil(mapped.awayLogo)
-        XCTAssertNil(mapped.homeLogo)
-        XCTAssertNil(mapped.matchup)
+        XCTAssertEqual(mapped.awayLogo, URL(string: "https://x/car.png"))
+        XCTAssertEqual(mapped.homeLogo, URL(string: "https://x/vgk.png"))
+        let matchup = try XCTUnwrap(mapped.matchup)
+        XCTAssertEqual(matchup.detail, "Final")
+        XCTAssertEqual(matchup.awayScore, "2")  // CAR
+        XCTAssertEqual(matchup.homeScore, "1")  // VGK
+    }
+
+    func testUpcomingHasMatchupWithoutScores() throws {
+        let adapter = HeadToHeadAdapter(
+            league: LeagueID(sport: "football", league: "nfl", displayName: "NFL"),
+            favorites: [], style: .quarters)
+        let event = try decodeFirst("""
+        {"events":[{"id":"p","date":"2026-09-09T00:20Z",
+          "status":{"type":{"state":"pre","shortDetail":"9/8 - 8:20 PM EDT"}},
+          "competitions":[{"competitors":[
+            {"homeAway":"home","score":"0","team":{"abbreviation":"SEA","logo":"https://x/sea.png"}},
+            {"homeAway":"away","score":"0","team":{"abbreviation":"NE","logo":"https://x/ne.png"}}
+          ]}]}]}
+        """)
+        let mapped = try XCTUnwrap(adapter.map(event))
+        XCTAssertEqual(mapped.awayLogo, URL(string: "https://x/ne.png"))
+        let matchup = try XCTUnwrap(mapped.matchup)
+        XCTAssertEqual(matchup.away, "NE")
+        XCTAssertEqual(matchup.home, "SEA")
+        XCTAssertTrue(matchup.awayScore.isEmpty, "upcoming games have no score — render shows 'vs'")
     }
 }
