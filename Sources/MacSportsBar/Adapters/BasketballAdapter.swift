@@ -49,7 +49,8 @@ struct BasketballAdapter: SportAdapter {
                 state: .live,
                 displayString: join(scoreLine, detail),
                 isFavorite: isFav,
-                sortPriority: isFav ? 1000 : 800
+                sortPriority: isFav ? 1000 : 800,
+                period: status?.period
             )
 
         case "post":

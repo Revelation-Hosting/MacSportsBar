@@ -49,7 +49,7 @@ struct HeadToHeadAdapter: SportAdapter {
         case "in":
             return SportEvent(id: id, league: league, state: .live,
                               displayString: join(scoreLine, liveDetail(status)),
-                              isFavorite: isFav, sortPriority: isFav ? 1000 : 800)
+                              isFavorite: isFav, sortPriority: isFav ? 1000 : 800, period: status?.period)
         case "post":
             return SportEvent(id: id, league: league, state: .final,
                               displayString: join(scoreLine, "Final"),

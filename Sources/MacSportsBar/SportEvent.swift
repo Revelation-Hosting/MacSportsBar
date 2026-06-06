@@ -20,6 +20,9 @@ struct SportEvent: Identifiable {
     let isFavorite: Bool
     /// Higher sorts first. Convention: live-favorite > live > pre-favorite > pre > final.
     let sortPriority: Int
+    /// Current period/quarter/inning number, when the sport has one. Used to detect boundary
+    /// transitions (a new period/inning) for notifications. Defaulted so adapters opt in.
+    var period: Int? = nil
 }
 
 extension SportEvent {

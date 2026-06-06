@@ -35,6 +35,8 @@ Coca-Cola 600 · L245/400 · St3 · #5 Larson   ← live NASCAR Cup
   the top event, cycling through multiples on a timer.
 - A click-through **Settings** window lets you pick favorite teams/drivers, enable/disable
   sports, and tune refresh cadence and display strategy.
+- **Optional favorites notifications** — at the end of each period/inning/half and when a
+  favorite team's game goes final (never on every score). Requires the installed `.app`.
 - **Keyless and secret-free** — it uses public, no-auth data endpoints, so there's nothing
   to configure and nothing sensitive to store.
 
@@ -173,8 +175,8 @@ Full architecture, per-sport display formats, and polling policy are documented 
   to verify the field paths; that upgrade is pending.
 - **M6** — League expansion: NFL, NHL, NCAA football, and soccer (Premier League / Champions
   League / MLS) on a shared head-to-head adapter, each with its own glyph. ✅ **done**
-- **M7** — Score notifications, scoped to boundaries (end of period/inning/half + final),
-  favorites-only. (Uses the bundled `.app` for notification permission.)
+- **M7** — Favorites notifications, scoped to boundaries (end of period/inning/half + final),
+  never per-score. ✅ **done** — requires the installed `.app` for notification permission.
 - **M8** — Polish: team-logos opt-in toggle, an app icon, live NASCAR lap/stage telemetry,
   and edge cases (postponed/OT/rain delay).
 

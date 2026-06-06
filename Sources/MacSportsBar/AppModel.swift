@@ -18,6 +18,7 @@ final class AppModel: ObservableObject {
     @Published var events: [SportEvent] = []
 
     private let client = ESPNClient()
+    private let notifications = NotificationManager()
     private let settings: Settings
     private var cancellables = Set<AnyCancellable>()
 
@@ -39,6 +40,7 @@ final class AppModel: ObservableObject {
     init(settings: Settings = .shared) {
         self.settings = settings
         observeSettings()
+        if settings.notifyFavorites { notifications.requestAuthorizationIfNeeded() }
         startPolling()
         startCycling()
     }
@@ -67,6 +69,14 @@ final class AppModel: ObservableObject {
         Publishers.MergeMany(displayChanges)
             .receive(on: RunLoop.main)
             .sink { [weak self] in self?.applyDisplay() }
+            .store(in: &cancellables)
+
+        // Request notification permission the moment the user opts in.
+        settings.$notifyFavorites
+            .dropFirst()
+            .filter { $0 }
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in self?.notifications.requestAuthorizationIfNeeded() }
             .store(in: &cancellables)
     }
 
@@ -101,6 +111,7 @@ final class AppModel: ObservableObject {
             catch { continue }  // one sport failing must never take down the others
         }
         lastRanked = collected.sorted { $0.sortPriority > $1.sortPriority }
+        notifications.process(events: lastRanked, enabled: settings.notifyFavorites)
         applyDisplay()
     }
 
