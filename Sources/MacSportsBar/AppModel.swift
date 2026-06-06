@@ -29,9 +29,11 @@ final class AppModel: ObservableObject {
     private var cycleCandidates: [SportEvent] = []
     /// Latest fetched + ranked events, before the favorites-only display filter is applied.
     private var lastRanked: [SportEvent] = []
-    /// Logo URLs of the currently-displayed matchup, for the menu-bar team-logos option.
+    /// Logo URLs + per-team breakdown of the currently-displayed matchup, for the menu-bar
+    /// team-logos layout.
     private var currentAwayLogo: URL?
     private var currentHomeLogo: URL?
+    private var currentMatchup: SportEvent.Matchup?
 
     /// How fast the menu bar rotates when several events are relevant at once.
     private let cyclePeriod: Duration = .seconds(8)
@@ -179,6 +181,7 @@ final class AppModel: ObservableObject {
     private func updateMenuBar() {
         currentAwayLogo = nil
         currentHomeLogo = nil
+        currentMatchup = nil
         if enabledLeagues.isEmpty {
             menuBarText = "No sports enabled"
             menuBarSymbol = "sportscourt.fill"
@@ -194,6 +197,7 @@ final class AppModel: ObservableObject {
                 menuBarSymbol = chosen.league.symbolName
                 currentAwayLogo = chosen.awayLogo
                 currentHomeLogo = chosen.homeLogo
+                currentMatchup = chosen.matchup
             } else {
                 menuBarSymbol = "sportscourt.fill"
                 menuBarText = (settings.favoritesOnly && !settings.favoriteTokens.isEmpty)
@@ -213,12 +217,16 @@ final class AppModel: ObservableObject {
 
         let label: AnyView
         let isTemplate: Bool
-        if let awayImage, let homeImage {
+        if let awayImage, let homeImage, let matchup = currentMatchup {
+            // [away logo] AWAY a - h HOME [home logo] · detail
             label = AnyView(
-                HStack(spacing: 3) {
+                HStack(spacing: 4) {
                     Image(nsImage: awayImage).resizable().scaledToFit().frame(width: 15, height: 15)
+                    Text("\(matchup.away) \(matchup.awayScore) - \(matchup.homeScore) \(matchup.home)")
                     Image(nsImage: homeImage).resizable().scaledToFit().frame(width: 15, height: 15)
-                    Text(menuBarText)
+                    if !matchup.detail.isEmpty {
+                        Text("· \(matchup.detail)")
+                    }
                 }.font(.system(size: 13))
             )
             isTemplate = false  // keep logo colors

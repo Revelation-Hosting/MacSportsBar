@@ -52,7 +52,9 @@ struct BasketballAdapter: SportAdapter {
                 sortPriority: isFav ? 1000 : 800,
                 period: status?.period,
                 awayLogo: logoURL(away),
-                homeLogo: logoURL(home)
+                homeLogo: logoURL(home),
+                matchup: .init(away: awayAbbr, awayScore: away.score ?? "0",
+                               home: homeAbbr, homeScore: home.score ?? "0", detail: detail)
             )
 
         case "post":

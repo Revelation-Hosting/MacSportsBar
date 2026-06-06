@@ -24,6 +24,14 @@ final class TeamLogoTests: XCTestCase {
         let mapped = try XCTUnwrap(adapter.map(event))
         XCTAssertEqual(mapped.awayLogo, URL(string: "https://a.espncdn.com/ne.png"))
         XCTAssertEqual(mapped.homeLogo, URL(string: "https://a.espncdn.com/sea.png"))
+
+        // Per-team breakdown for the interleaved logo layout.
+        let matchup = try XCTUnwrap(mapped.matchup)
+        XCTAssertEqual(matchup.away, "NE")
+        XCTAssertEqual(matchup.awayScore, "14")
+        XCTAssertEqual(matchup.home, "SEA")
+        XCTAssertEqual(matchup.homeScore, "21")
+        XCTAssertEqual(matchup.detail, "7:30 Q3")
     }
 
     func testFinalHasNoLogos() throws {
@@ -40,5 +48,6 @@ final class TeamLogoTests: XCTestCase {
         let mapped = try XCTUnwrap(adapter.map(event))
         XCTAssertNil(mapped.awayLogo)
         XCTAssertNil(mapped.homeLogo)
+        XCTAssertNil(mapped.matchup)
     }
 }

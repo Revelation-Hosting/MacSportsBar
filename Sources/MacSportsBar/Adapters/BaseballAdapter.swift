@@ -39,7 +39,9 @@ struct BaseballAdapter: SportAdapter {
             let detail = liveDetail(status: status, situation: competition.situation)
             return SportEvent(id: id, league: league, state: .live, displayString: join(scoreLine, detail),
                               isFavorite: isFav, sortPriority: isFav ? 1000 : 800, period: status?.period,
-                              awayLogo: logoURL(away), homeLogo: logoURL(home))
+                              awayLogo: logoURL(away), homeLogo: logoURL(home),
+                              matchup: .init(away: awayAbbr, awayScore: away.score ?? "0",
+                                             home: homeAbbr, homeScore: home.score ?? "0", detail: detail))
         case "post":
             return SportEvent(id: id, league: league, state: .final, displayString: join(scoreLine, "Final"),
                               isFavorite: isFav, sortPriority: isFav ? 300 : 100)

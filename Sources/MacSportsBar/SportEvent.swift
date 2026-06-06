@@ -27,6 +27,18 @@ struct SportEvent: Identifiable {
     /// head-to-head adapters for live games; nil for individual sports (golf/racing).
     var awayLogo: URL? = nil
     var homeLogo: URL? = nil
+    /// Per-team breakdown for the menu-bar team-logos layout (head-to-head live games).
+    var matchup: Matchup? = nil
+
+    /// Away/home abbreviations + scores and the live detail, so the menu bar can lay out the
+    /// logos and scores individually, e.g. `[logo] NY 39 - 42 SA [logo] · 7:01 Q2`.
+    struct Matchup {
+        let away: String
+        let awayScore: String
+        let home: String
+        let homeScore: String
+        let detail: String
+    }
 }
 
 extension SportEvent {
