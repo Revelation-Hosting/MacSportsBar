@@ -134,9 +134,10 @@ Once running, MacSportsBar appears as a short score string in the menu bar with 
 icon. Click it to open the popover, then choose **Settings…** to:
 
 - Toggle which sports are shown.
-- Set favorite teams (comma-separated, matched case-insensitively against the feed).
-  Favorite games sort to the front.
-- Override the refresh cadence.
+- **Pick favorite teams** from a per-league list (with team logos), or type players/drivers
+  for golf/NASCAR. Favorite games sort to the front, can restrict the ticker, and drive
+  notifications.
+- Override the refresh cadence and toggle favorites-only notifications.
 - Toggle cycling through multiple live games, and set the maximum string length.
 
 Settings persist automatically.
@@ -177,7 +178,9 @@ Full architecture, per-sport display formats, and polling policy are documented 
   League / MLS) on a shared head-to-head adapter, each with its own glyph. ✅ **done**
 - **M7** — Favorites notifications, scoped to boundaries (end of period/inning/half + final),
   never per-score. ✅ **done** — requires the installed `.app` for notification permission.
-- **M8** — Polish: team-logos opt-in toggle, an app icon, live NASCAR lap/stage telemetry,
+- **M8** — Favorites team picker (per-league list with team logos) + structured exact-match
+  favorites (no fuzzy collisions). ✅ **done**
+- **M9** — Polish: menu-bar team-logos toggle, an app icon, live NASCAR lap/stage telemetry,
   and edge cases (postponed/OT/rain delay).
 
 ---
