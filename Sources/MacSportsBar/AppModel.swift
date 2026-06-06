@@ -137,9 +137,9 @@ final class AppModel: ObservableObject {
     /// Derive what's shown from `lastRanked`: apply the favorites-only filter, recompute the
     /// cycle set and poll cadence, and refresh the menu-bar string. Cheap — no network.
     private func applyDisplay() {
-        let shown = (settings.favoritesOnly && !settings.favoriteTokens.isEmpty)
-            ? lastRanked.filter(\.isFavorite)
-            : lastRanked
+        let shown = Self.displaySet(from: lastRanked,
+                                    favoritesOnly: settings.favoritesOnly,
+                                    hasFavorites: settings.hasAnyFavorites)
         events = shown
         currentInterval = pollInterval(for: shown)
         cycleCandidates = Self.candidates(from: shown)
@@ -200,7 +200,7 @@ final class AppModel: ObservableObject {
                 currentMatchup = chosen.matchup
             } else {
                 menuBarSymbol = "sportscourt.fill"
-                menuBarText = (settings.favoritesOnly && !settings.favoriteTokens.isEmpty)
+                menuBarText = (settings.favoritesOnly && settings.hasAnyFavorites)
                     ? "No favorite games" : "No games"
             }
         }
@@ -257,6 +257,15 @@ final class AppModel: ObservableObject {
         let limit = max(8, limit)
         guard string.count > limit else { return string }
         return String(string.prefix(limit - 1)) + "…"
+    }
+
+    /// What the menu shows: when "favorites only" is on AND the user actually has favorites
+    /// configured (structured team picks or free-form tokens), filter to favorite events;
+    /// otherwise show everything (so it never filters down to nothing).
+    nonisolated static func displaySet(
+        from ranked: [SportEvent], favoritesOnly: Bool, hasFavorites: Bool
+    ) -> [SportEvent] {
+        (favoritesOnly && hasFavorites) ? ranked.filter(\.isFavorite) : ranked
     }
 
     /// Events worth cycling through: all live games, else favorites, else just the top one.

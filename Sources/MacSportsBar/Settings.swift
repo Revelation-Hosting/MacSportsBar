@@ -100,6 +100,11 @@ final class Settings: ObservableObject {
         teamFavorites[league] = set.isEmpty ? nil : set
     }
 
+    /// Whether any favorites are configured at all — structured team picks or free-form tokens.
+    var hasAnyFavorites: Bool {
+        !teamFavorites.isEmpty || !favoriteTokens.isEmpty
+    }
+
     /// Parsed, lowercased favorite tokens used for matching against feed names.
     var favoriteTokens: Set<String> {
         Set(
