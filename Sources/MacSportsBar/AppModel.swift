@@ -54,6 +54,7 @@ final class AppModel: ObservableObject {
             settings.$enabledLeagues.dropFirst().map { _ in () }.eraseToAnyPublisher(),
             settings.$favorites.dropFirst().map { _ in () }.eraseToAnyPublisher(),
             settings.$refreshSeconds.dropFirst().map { _ in () }.eraseToAnyPublisher(),
+            settings.$teamFavorites.dropFirst().map { _ in () }.eraseToAnyPublisher(),
         ]
         Publishers.MergeMany(dataChanges)
             .debounce(for: .milliseconds(500), scheduler: RunLoop.main)
@@ -85,8 +86,18 @@ final class AppModel: ObservableObject {
     }
 
     private var adapters: [SportAdapter] {
-        let tokens = settings.favoriteTokens
-        return enabledLeagues.map { $0.makeAdapter(tokens) }
+        enabledLeagues.map { $0.makeAdapter(favorites(for: $0.league)) }
+    }
+
+    /// Favorites passed to a league's adapter: exact team selections for team sports, plus the
+    /// free-form tokens (which also cover golf/NASCAR players and drivers).
+    private func favorites(for league: LeagueID) -> Set<String> {
+        switch league.sport {
+        case "golf", "racing":
+            return settings.favoriteTokens
+        default:
+            return (settings.teamFavorites[league.league] ?? []).union(settings.favoriteTokens)
+        }
     }
 
     // MARK: - Polling

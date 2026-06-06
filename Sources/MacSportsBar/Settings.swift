@@ -22,6 +22,9 @@ final class Settings: ObservableObject {
     @Published var favoritesOnly: Bool
     /// Notify on boundary events (new period/inning/half + final) for favorite teams.
     @Published var notifyFavorites: Bool
+    /// Per-league favorite team abbreviations (lowercased), chosen in the team picker.
+    /// Exact matches — no fuzzy substring matching like the free-form `favorites` field.
+    @Published var teamFavorites: [String: Set<String>]
 
     private let defaults: UserDefaults
     private var cancellables = Set<AnyCancellable>()
@@ -35,6 +38,7 @@ final class Settings: ObservableObject {
         static let cycleEnabled = "cycleEnabled"
         static let favoritesOnly = "favoritesOnly"
         static let notifyFavorites = "notifyFavorites"
+        static let teamFavorites = "teamFavorites"
     }
 
     init(defaults: UserDefaults = .standard) {
@@ -59,6 +63,12 @@ final class Settings: ObservableObject {
         cycleEnabled = defaults.object(forKey: Key.cycleEnabled) as? Bool ?? true
         favoritesOnly = defaults.object(forKey: Key.favoritesOnly) as? Bool ?? false
         notifyFavorites = defaults.object(forKey: Key.notifyFavorites) as? Bool ?? false
+        if let data = defaults.data(forKey: Key.teamFavorites),
+           let decoded = try? JSONDecoder().decode([String: [String]].self, from: data) {
+            teamFavorites = decoded.mapValues { Set($0) }
+        } else {
+            teamFavorites = [:]
+        }
 
         persist($enabledLeagues) { [weak self] in self?.defaults.set(Array($0), forKey: Key.enabledLeagues) }
         persist($favorites) { [weak self] in self?.defaults.set($0, forKey: Key.favorites) }
@@ -67,6 +77,22 @@ final class Settings: ObservableObject {
         persist($cycleEnabled) { [weak self] in self?.defaults.set($0, forKey: Key.cycleEnabled) }
         persist($favoritesOnly) { [weak self] in self?.defaults.set($0, forKey: Key.favoritesOnly) }
         persist($notifyFavorites) { [weak self] in self?.defaults.set($0, forKey: Key.notifyFavorites) }
+        persist($teamFavorites) { [weak self] favorites in
+            let encodable = favorites.mapValues { Array($0) }
+            self?.defaults.set(try? JSONEncoder().encode(encodable), forKey: Key.teamFavorites)
+        }
+    }
+
+    /// Whether `abbreviation` is a favorite within `league` (slug).
+    func isFavoriteTeam(_ abbreviation: String, in league: String) -> Bool {
+        teamFavorites[league]?.contains(abbreviation.lowercased()) ?? false
+    }
+
+    /// Toggle a team's favorite status within a league.
+    func setFavoriteTeam(_ abbreviation: String, in league: String, on: Bool) {
+        var set = teamFavorites[league] ?? []
+        if on { set.insert(abbreviation.lowercased()) } else { set.remove(abbreviation.lowercased()) }
+        teamFavorites[league] = set.isEmpty ? nil : set
     }
 
     /// Parsed, lowercased favorite tokens used for matching against feed names.
