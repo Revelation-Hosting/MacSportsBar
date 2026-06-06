@@ -49,7 +49,8 @@ struct HeadToHeadAdapter: SportAdapter {
         case "in":
             return SportEvent(id: id, league: league, state: .live,
                               displayString: join(scoreLine, liveDetail(status)),
-                              isFavorite: isFav, sortPriority: isFav ? 1000 : 800, period: status?.period)
+                              isFavorite: isFav, sortPriority: isFav ? 1000 : 800, period: status?.period,
+                              awayLogo: logoURL(away), homeLogo: logoURL(home))
         case "post":
             return SportEvent(id: id, league: league, state: .final,
                               displayString: join(scoreLine, "Final"),
@@ -130,6 +131,10 @@ struct HeadToHeadAdapter: SportAdapter {
         competitor.team?.abbreviation ?? competitor.team?.shortDisplayName ?? "—"
     }
 
+    private func logoURL(_ competitor: Scoreboard.Competitor) -> URL? {
+        competitor.team?.logo.flatMap { URL(string: $0) }
+    }
+
     private func isFavorite(_ competitor: Scoreboard.Competitor) -> Bool {
         guard !favorites.isEmpty else { return false }
         let names = [
@@ -207,6 +212,7 @@ extension HeadToHeadAdapter {
             let displayName: String?
             let shortDisplayName: String?
             let location: String?
+            let logo: String?
         }
 
         struct Status: Decodable {

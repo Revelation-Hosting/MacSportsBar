@@ -38,7 +38,8 @@ struct BaseballAdapter: SportAdapter {
         case "in":
             let detail = liveDetail(status: status, situation: competition.situation)
             return SportEvent(id: id, league: league, state: .live, displayString: join(scoreLine, detail),
-                              isFavorite: isFav, sortPriority: isFav ? 1000 : 800, period: status?.period)
+                              isFavorite: isFav, sortPriority: isFav ? 1000 : 800, period: status?.period,
+                              awayLogo: logoURL(away), homeLogo: logoURL(home))
         case "post":
             return SportEvent(id: id, league: league, state: .final, displayString: join(scoreLine, "Final"),
                               isFavorite: isFav, sortPriority: isFav ? 300 : 100)
@@ -87,6 +88,10 @@ struct BaseballAdapter: SportAdapter {
 
     private func abbr(of competitor: Scoreboard.Competitor) -> String {
         competitor.team?.abbreviation ?? competitor.team?.shortDisplayName ?? "—"
+    }
+
+    private func logoURL(_ competitor: Scoreboard.Competitor) -> URL? {
+        competitor.team?.logo.flatMap { URL(string: $0) }
     }
 
     private func isFavorite(_ competitor: Scoreboard.Competitor) -> Bool {
@@ -161,6 +166,7 @@ extension BaseballAdapter {
             let displayName: String?
             let shortDisplayName: String?
             let location: String?
+            let logo: String?
         }
 
         struct Status: Decodable {

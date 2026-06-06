@@ -23,6 +23,10 @@ struct SportEvent: Identifiable {
     /// Current period/quarter/inning number, when the sport has one. Used to detect boundary
     /// transitions (a new period/inning) for notifications. Defaulted so adapters opt in.
     var period: Int? = nil
+    /// Team logo URLs for the matchup, for the optional menu-bar team-logos display. Set by
+    /// head-to-head adapters for live games; nil for individual sports (golf/racing).
+    var awayLogo: URL? = nil
+    var homeLogo: URL? = nil
 }
 
 extension SportEvent {

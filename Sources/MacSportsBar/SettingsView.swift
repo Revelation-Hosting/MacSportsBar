@@ -54,6 +54,9 @@ struct SettingsView: View {
                         value: $settings.refreshSeconds, in: 10...600, step: 5)
                 Text("Applies while games are live. When nothing is live, polling slows to every 5 minutes automatically.")
                     .font(.caption).foregroundStyle(.secondary)
+                Toggle("Show team logos in the menu bar", isOn: $settings.showTeamLogos)
+                Text("Replaces the league glyph with the playing teams' logos (in color) during live games.")
+                    .font(.caption).foregroundStyle(.secondary)
             }
 
             Section("Notifications") {

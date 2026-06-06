@@ -19,6 +19,7 @@ final class AppModel: ObservableObject {
 
     private let client = ESPNClient()
     private let notifications = NotificationManager()
+    private let logos = LogoCache()
     private let settings: Settings
     private var cancellables = Set<AnyCancellable>()
 
@@ -28,6 +29,9 @@ final class AppModel: ObservableObject {
     private var cycleCandidates: [SportEvent] = []
     /// Latest fetched + ranked events, before the favorites-only display filter is applied.
     private var lastRanked: [SportEvent] = []
+    /// Logo URLs of the currently-displayed matchup, for the menu-bar team-logos option.
+    private var currentAwayLogo: URL?
+    private var currentHomeLogo: URL?
 
     /// How fast the menu bar rotates when several events are relevant at once.
     private let cyclePeriod: Duration = .seconds(8)
@@ -40,6 +44,7 @@ final class AppModel: ObservableObject {
     init(settings: Settings = .shared) {
         self.settings = settings
         observeSettings()
+        logos.onLoad = { [weak self] in self?.updateMenuBar() }
         if settings.notifyFavorites { notifications.requestAuthorizationIfNeeded() }
         startPolling()
         startCycling()
@@ -66,6 +71,7 @@ final class AppModel: ObservableObject {
             settings.$maxLength.dropFirst().map { _ in () }.eraseToAnyPublisher(),
             settings.$cycleEnabled.dropFirst().map { _ in () }.eraseToAnyPublisher(),
             settings.$favoritesOnly.dropFirst().map { _ in () }.eraseToAnyPublisher(),
+            settings.$showTeamLogos.dropFirst().map { _ in () }.eraseToAnyPublisher(),
         ]
         Publishers.MergeMany(displayChanges)
             .receive(on: RunLoop.main)
@@ -171,6 +177,8 @@ final class AppModel: ObservableObject {
     }
 
     private func updateMenuBar() {
+        currentAwayLogo = nil
+        currentHomeLogo = nil
         if enabledLeagues.isEmpty {
             menuBarText = "No sports enabled"
             menuBarSymbol = "sportscourt.fill"
@@ -184,6 +192,8 @@ final class AppModel: ObservableObject {
             if let chosen {
                 menuBarText = truncate(chosen.displayString)
                 menuBarSymbol = chosen.league.symbolName
+                currentAwayLogo = chosen.awayLogo
+                currentHomeLogo = chosen.homeLogo
             } else {
                 menuBarSymbol = "sportscourt.fill"
                 menuBarText = (settings.favoritesOnly && !settings.favoriteTokens.isEmpty)
@@ -193,19 +203,39 @@ final class AppModel: ObservableObject {
         renderMenuBarImage()
     }
 
-    /// Composite the league glyph and the score into a single template `NSImage`, because the
-    /// status item won't render an icon and text together from a SwiftUI label.
+    /// Composite the menu-bar label into a single `NSImage`, because the status item won't
+    /// render an icon and text together from a SwiftUI label. With team logos enabled and both
+    /// logos cached, shows the matchup's color logos; otherwise the monochrome league glyph
+    /// (a template image that adapts to the menu bar's light/dark appearance).
     private func renderMenuBarImage() {
-        let label = HStack(spacing: 4) {
-            Image(systemName: menuBarSymbol)
-            Text(menuBarText)
+        let awayImage = settings.showTeamLogos ? logos.image(for: currentAwayLogo) : nil
+        let homeImage = settings.showTeamLogos ? logos.image(for: currentHomeLogo) : nil
+
+        let label: AnyView
+        let isTemplate: Bool
+        if let awayImage, let homeImage {
+            label = AnyView(
+                HStack(spacing: 3) {
+                    Image(nsImage: awayImage).resizable().scaledToFit().frame(width: 15, height: 15)
+                    Image(nsImage: homeImage).resizable().scaledToFit().frame(width: 15, height: 15)
+                    Text(menuBarText)
+                }.font(.system(size: 13))
+            )
+            isTemplate = false  // keep logo colors
+        } else {
+            label = AnyView(
+                HStack(spacing: 4) {
+                    Image(systemName: menuBarSymbol)
+                    Text(menuBarText)
+                }.font(.system(size: 13))
+            )
+            isTemplate = true  // monochrome glyph adapts to light/dark
         }
-        .font(.system(size: 13))
 
         let renderer = ImageRenderer(content: label)
         renderer.scale = 2  // render @2x for crisp text on Retina
         guard let image = renderer.nsImage else { return }
-        image.isTemplate = true  // adapt to the menu bar's light/dark appearance
+        image.isTemplate = isTemplate
         menuBarImage = image
     }
 

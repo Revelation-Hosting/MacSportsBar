@@ -50,7 +50,9 @@ struct BasketballAdapter: SportAdapter {
                 displayString: join(scoreLine, detail),
                 isFavorite: isFav,
                 sortPriority: isFav ? 1000 : 800,
-                period: status?.period
+                period: status?.period,
+                awayLogo: logoURL(away),
+                homeLogo: logoURL(home)
             )
 
         case "post":
@@ -80,6 +82,10 @@ struct BasketballAdapter: SportAdapter {
 
     private func abbr(of competitor: Scoreboard.Competitor) -> String {
         competitor.team?.abbreviation ?? competitor.team?.shortDisplayName ?? "—"
+    }
+
+    private func logoURL(_ competitor: Scoreboard.Competitor) -> URL? {
+        competitor.team?.logo.flatMap { URL(string: $0) }
     }
 
     /// NBA: Q1–Q4 then OT/2OT. NCAA Men's: 1H/2H then OT/2OT.
@@ -169,6 +175,7 @@ extension BasketballAdapter {
             let displayName: String?
             let shortDisplayName: String?
             let location: String?
+            let logo: String?
         }
 
         struct Status: Decodable {

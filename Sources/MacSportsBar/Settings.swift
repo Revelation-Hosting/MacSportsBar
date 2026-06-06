@@ -25,6 +25,8 @@ final class Settings: ObservableObject {
     /// Per-league favorite team abbreviations (lowercased), chosen in the team picker.
     /// Exact matches — no fuzzy substring matching like the free-form `favorites` field.
     @Published var teamFavorites: [String: Set<String>]
+    /// Render the matchup's team logos (color) in the menu bar instead of the league glyph.
+    @Published var showTeamLogos: Bool
 
     private let defaults: UserDefaults
     private var cancellables = Set<AnyCancellable>()
@@ -39,6 +41,7 @@ final class Settings: ObservableObject {
         static let favoritesOnly = "favoritesOnly"
         static let notifyFavorites = "notifyFavorites"
         static let teamFavorites = "teamFavorites"
+        static let showTeamLogos = "showTeamLogos"
     }
 
     init(defaults: UserDefaults = .standard) {
@@ -69,6 +72,7 @@ final class Settings: ObservableObject {
         } else {
             teamFavorites = [:]
         }
+        showTeamLogos = defaults.object(forKey: Key.showTeamLogos) as? Bool ?? false
 
         persist($enabledLeagues) { [weak self] in self?.defaults.set(Array($0), forKey: Key.enabledLeagues) }
         persist($favorites) { [weak self] in self?.defaults.set($0, forKey: Key.favorites) }
@@ -81,6 +85,7 @@ final class Settings: ObservableObject {
             let encodable = favorites.mapValues { Array($0) }
             self?.defaults.set(try? JSONEncoder().encode(encodable), forKey: Key.teamFavorites)
         }
+        persist($showTeamLogos) { [weak self] in self?.defaults.set($0, forKey: Key.showTeamLogos) }
     }
 
     /// Whether `abbreviation` is a favorite within `league` (slug).
