@@ -20,6 +20,9 @@ struct SportEvent: Identifiable {
     let isFavorite: Bool
     /// Higher sorts first. Convention: live-favorite > live > pre-favorite > pre > final.
     let sortPriority: Int
+    /// Scheduled start time (the feed's UTC date), for the ±24h favorites window and for
+    /// labeling recent/upcoming games. Defaulted so adapters opt in.
+    var date: Date? = nil
     /// Current period/quarter/inning number, when the sport has one. Used to detect boundary
     /// transitions (a new period/inning) for notifications. Defaulted so adapters opt in.
     var period: Int? = nil

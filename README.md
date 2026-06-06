@@ -36,6 +36,8 @@ Coca-Cola 600 · L245/400 · St3 · #5 Larson   ← live NASCAR Cup
   sports, and tune refresh cadence and display strategy.
 - **Optional favorites notifications** — at the end of each period/inning/half and when a
   favorite team's game goes final (never on every score). Requires the installed `.app`.
+- A **±24h favorites view** — your teams' recent finals, live games, and upcoming matchups,
+  surfaced both in the dropdown digest and the ticker.
 - **Keyless and secret-free** — it uses public, no-auth data endpoints, so there's nothing
   to configure and nothing sensitive to store.
 
@@ -181,7 +183,9 @@ Full architecture, per-sport display formats, and polling policy are documented 
   favorites (no fuzzy collisions). ✅ **done**
 - **M9** — Menu-bar team-logos toggle (opt-in; shows the live matchup's color logos instead
   of the league glyph). ✅ **done**
-- **M10** — Polish: an app icon, live NASCAR lap/stage telemetry, and edge cases
+- **M10** — ±24h favorites window: recent finals + live + upcoming for your teams, in the
+  dropdown digest and the ticker (adjacent days fetched only for leagues with favorites). ✅ **done**
+- **M11** — Polish: an app icon, live NASCAR lap/stage telemetry, and edge cases
   (postponed/OT/rain delay).
 
 ---

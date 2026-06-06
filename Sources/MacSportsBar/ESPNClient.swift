@@ -20,14 +20,20 @@ struct ESPNClient {
         case badStatus(Int)
     }
 
-    /// GET `<base>/<sport>/<league>/<resource>` and decode it as `T`.
+    /// GET `<base>/<sport>/<league>/<resource>` and decode it as `T`. `dates` (YYYYMMDD) adds
+    /// the `?dates=` query to fetch a specific day instead of the default (today).
     func resource<T: Decodable>(
-        sport: String, league: String, _ resource: String, as type: T.Type
+        sport: String, league: String, _ resource: String, dates: String? = nil, as type: T.Type
     ) async throws -> T {
-        let url = baseURL
+        var url = baseURL
             .appendingPathComponent(sport)
             .appendingPathComponent(league)
             .appendingPathComponent(resource)
+        if let dates {
+            var components = URLComponents(url: url, resolvingAgainstBaseURL: false)
+            components?.queryItems = [URLQueryItem(name: "dates", value: dates)]
+            url = components?.url ?? url
+        }
 
         var request = URLRequest(url: url)
         request.timeoutInterval = timeout
@@ -40,8 +46,11 @@ struct ESPNClient {
         return try JSONDecoder().decode(T.self, from: data)
     }
 
-    /// GET `<base>/<sport>/<league>/scoreboard` and decode it as `T`.
-    func scoreboard<T: Decodable>(sport: String, league: String, as type: T.Type) async throws -> T {
-        try await resource(sport: sport, league: league, "scoreboard", as: type)
+    /// GET `<base>/<sport>/<league>/scoreboard` and decode it as `T`. `dates` (YYYYMMDD)
+    /// selects a specific day; nil fetches the default (today).
+    func scoreboard<T: Decodable>(
+        sport: String, league: String, dates: String? = nil, as type: T.Type
+    ) async throws -> T {
+        try await resource(sport: sport, league: league, "scoreboard", dates: dates, as: type)
     }
 }

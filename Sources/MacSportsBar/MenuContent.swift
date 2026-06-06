@@ -8,12 +8,26 @@ struct MenuContent: View {
     @Environment(\.openWindow) private var openWindow
 
     var body: some View {
-        if model.events.isEmpty {
-            Text("No games right now")
-        } else {
-            ForEach(model.events.prefix(8)) { event in
+        let digest = model.favoritesDigest
+        let digestIDs = Set(digest.map(\.id))
+        let others = model.events.filter { !digestIDs.contains($0.id) }
+
+        if !digest.isEmpty {
+            Text("Favorites")
+            ForEach(digest.prefix(12)) { event in
                 Label(event.displayString, systemImage: event.league.symbolName)
             }
+        }
+
+        if !others.isEmpty {
+            if !digest.isEmpty { Divider() }
+            ForEach(others.prefix(8)) { event in
+                Label(event.displayString, systemImage: event.league.symbolName)
+            }
+        }
+
+        if digest.isEmpty && others.isEmpty {
+            Text("No games right now")
         }
 
         Divider()

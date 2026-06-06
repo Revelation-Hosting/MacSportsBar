@@ -16,6 +16,8 @@ final class AppModel: ObservableObject {
     @Published var menuBarImage: NSImage?
     /// Full ranked list, surfaced in the dropdown menu.
     @Published var events: [SportEvent] = []
+    /// Favorite teams' games across ±24h (recent finals, live, upcoming) — the dropdown digest.
+    @Published var favoritesDigest: [SportEvent] = []
 
     private let client = ESPNClient()
     private let notifications = NotificationManager()
@@ -29,6 +31,9 @@ final class AppModel: ObservableObject {
     private var cycleCandidates: [SportEvent] = []
     /// Latest fetched + ranked events, before the favorites-only display filter is applied.
     private var lastRanked: [SportEvent] = []
+    /// Cached yesterday/tomorrow favorite games (static, so refetched on a long throttle).
+    private var adjacentFavorites: [SportEvent] = []
+    private var adjacentFetchedAt: Date?
     /// Logo URLs + per-team breakdown of the currently-displayed matchup, for the menu-bar
     /// team-logos layout.
     private var currentAwayLogo: URL?
@@ -65,7 +70,10 @@ final class AppModel: ObservableObject {
         ]
         Publishers.MergeMany(dataChanges)
             .debounce(for: .milliseconds(500), scheduler: RunLoop.main)
-            .sink { [weak self] in self?.startPolling() }
+            .sink { [weak self] in
+                self?.adjacentFetchedAt = nil  // favorites/leagues changed → rebuild the window
+                self?.startPolling()
+            }
             .store(in: &cancellables)
 
         // Display-only changes → re-derive the shown set from the last fetch (no refetch).
@@ -131,8 +139,67 @@ final class AppModel: ObservableObject {
         }
         lastRanked = collected.sorted { $0.sortPriority > $1.sortPriority }
         notifications.process(events: lastRanked, enabled: settings.notifyFavorites)
+        await updateFavoritesWindow()
         applyDisplay()
     }
+
+    // MARK: - Favorites window (±24h)
+
+    /// Rebuild the ±24h favorites digest from cached adjacent-day games + today's favorites:
+    /// recent finals (last 24h), live, and upcoming (next 24h), sorted chronologically.
+    private func updateFavoritesWindow() async {
+        await refreshAdjacentIfStale()
+        favoritesDigest = Self.windowedFavorites(
+            from: adjacentFavorites + lastRanked.filter(\.isFavorite), now: Date())
+    }
+
+    /// Keep favorite events within ±`horizon` of `now` (live games always kept), deduped by id
+    /// and sorted chronologically. Pure — the seam the tests exercise.
+    nonisolated static func windowedFavorites(
+        from events: [SportEvent], now: Date, horizon: TimeInterval = 24 * 3600
+    ) -> [SportEvent] {
+        var seen = Set<String>()
+        return events
+            .filter { event in
+                guard seen.insert(event.id).inserted else { return false }
+                if event.isLive { return true }
+                guard let date = event.date else { return false }
+                return abs(date.timeIntervalSince(now)) <= horizon
+            }
+            .sorted { ($0.date ?? .distantPast) < ($1.date ?? .distantPast) }
+    }
+
+    /// Fetch yesterday + tomorrow for leagues that have favorites — cached on a 15-minute
+    /// throttle since finals and schedules don't change. Team sports only (golf/NASCAR
+    /// favorites are individuals, with no recent/upcoming "matchup" to window).
+    private func refreshAdjacentIfStale() async {
+        let now = Date()
+        if let at = adjacentFetchedAt, now.timeIntervalSince(at) < 900 { return }
+        adjacentFetchedAt = now
+        let yesterday = Self.dayFormatter.string(from: now.addingTimeInterval(-86_400))
+        let tomorrow = Self.dayFormatter.string(from: now.addingTimeInterval(86_400))
+
+        var collected: [SportEvent] = []
+        for supported in enabledLeagues
+        where supported.league.sport != "golf" && supported.league.sport != "racing" {
+            let favs = favorites(for: supported.league)
+            guard !favs.isEmpty else { continue }
+            let adapter = supported.makeAdapter(favs)
+            for day in [yesterday, tomorrow] {
+                if let events = try? await adapter.fetch(using: client, dates: day) {
+                    collected += events.filter(\.isFavorite)
+                }
+            }
+        }
+        adjacentFavorites = collected
+    }
+
+    private static let dayFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.dateFormat = "yyyyMMdd"
+        return f
+    }()
 
     /// Derive what's shown from `lastRanked`: apply the favorites-only filter, recompute the
     /// cycle set and poll cadence, and refresh the menu-bar string. Cheap — no network.
@@ -142,9 +209,21 @@ final class AppModel: ObservableObject {
                                     hasFavorites: settings.hasAnyFavorites)
         events = shown
         currentInterval = pollInterval(for: shown)
-        cycleCandidates = Self.candidates(from: shown)
+        cycleCandidates = candidatesWithWindow(from: shown)
         cycleIndex = cycleCandidates.isEmpty ? 0 : cycleIndex % cycleCandidates.count
         updateMenuBar()
+    }
+
+    /// Cycle set: the base candidates (live, else favorites, else top) plus the favorites
+    /// window's recent finals and upcoming games, so your team's last result and next game
+    /// rotate through the ticker too.
+    private func candidatesWithWindow(from shown: [SportEvent]) -> [SportEvent] {
+        var result = Self.candidates(from: shown)
+        var seen = Set(result.map(\.id))
+        for event in favoritesDigest where !event.isLive {
+            if seen.insert(event.id).inserted { result.append(event) }
+        }
+        return result
     }
 
     /// Adaptive cadence (spec §7): tight while a favorite is live, moderate for any live

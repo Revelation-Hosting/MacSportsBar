@@ -13,9 +13,9 @@ struct RacingAdapter: SportAdapter {
     /// Lowercased favorite driver names. Empty = no favorites.
     let favorites: Set<String>
 
-    func fetch(using client: ESPNClient) async throws -> [SportEvent] {
+    func fetch(using client: ESPNClient, dates: String?) async throws -> [SportEvent] {
         let payload = try await client.scoreboard(
-            sport: league.sport, league: league.league, as: Scoreboard.self
+            sport: league.sport, league: league.league, dates: dates, as: Scoreboard.self
         )
         return (payload.events ?? []).map(map)
     }

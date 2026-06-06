@@ -19,9 +19,9 @@ struct HeadToHeadAdapter: SportAdapter {
     let favorites: Set<String>
     let style: PeriodStyle
 
-    func fetch(using client: ESPNClient) async throws -> [SportEvent] {
+    func fetch(using client: ESPNClient, dates: String?) async throws -> [SportEvent] {
         let payload = try await client.scoreboard(
-            sport: league.sport, league: league.league, as: Scoreboard.self
+            sport: league.sport, league: league.league, dates: dates, as: Scoreboard.self
         )
         return (payload.events ?? []).compactMap(map)
     }
@@ -44,25 +44,27 @@ struct HeadToHeadAdapter: SportAdapter {
         let isFav = isFavorite(home) || isFavorite(away)
         let scoreLine = "\(awayAbbr) \(away.score ?? "0")  \(homeAbbr) \(home.score ?? "0")"
         let id = event.id ?? "\(awayAbbr)-\(homeAbbr)"
+        let gameDate = parseDate(event.date)
 
         switch state {
         case "in":
             let detail = liveDetail(status)
             return SportEvent(id: id, league: league, state: .live,
                               displayString: join(scoreLine, detail),
-                              isFavorite: isFav, sortPriority: isFav ? 1000 : 800, period: status?.period,
+                              isFavorite: isFav, sortPriority: isFav ? 1000 : 800, date: gameDate,
+                              period: status?.period,
                               awayLogo: logoURL(away), homeLogo: logoURL(home),
                               matchup: .init(away: awayAbbr, awayScore: away.score ?? "0",
                                              home: homeAbbr, homeScore: home.score ?? "0", detail: detail))
         case "post":
             return SportEvent(id: id, league: league, state: .final,
                               displayString: join(scoreLine, "Final"),
-                              isFavorite: isFav, sortPriority: isFav ? 300 : 100)
+                              isFavorite: isFav, sortPriority: isFav ? 300 : 100, date: gameDate)
         default: // "pre"
             let start = parseDate(event.date)
             return SportEvent(id: id, league: league, state: .pre(startDate: start),
                               displayString: join("\(awayAbbr) vs \(homeAbbr)", preLabel(start, fallback: status)),
-                              isFavorite: isFav, sortPriority: isFav ? 600 : 400)
+                              isFavorite: isFav, sortPriority: isFav ? 600 : 400, date: gameDate)
         }
     }
 

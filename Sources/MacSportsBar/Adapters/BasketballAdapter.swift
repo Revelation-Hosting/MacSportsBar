@@ -11,9 +11,9 @@ struct BasketballAdapter: SportAdapter {
     /// Lowercased team abbreviations/names the user follows. Empty = no favorites (M1).
     let favorites: Set<String>
 
-    func fetch(using client: ESPNClient) async throws -> [SportEvent] {
+    func fetch(using client: ESPNClient, dates: String?) async throws -> [SportEvent] {
         let payload = try await client.scoreboard(
-            sport: league.sport, league: league.league, as: Scoreboard.self
+            sport: league.sport, league: league.league, dates: dates, as: Scoreboard.self
         )
         return (payload.events ?? []).compactMap(map)
     }
@@ -37,6 +37,7 @@ struct BasketballAdapter: SportAdapter {
 
         let isFav = isFavorite(home) || isFavorite(away)
         let scoreLine = "\(awayAbbr) \(away.score ?? "0")  \(homeAbbr) \(home.score ?? "0")"
+        let gameDate = parseDate(event.date)
 
         switch state {
         case "in":
@@ -50,6 +51,7 @@ struct BasketballAdapter: SportAdapter {
                 displayString: join(scoreLine, detail),
                 isFavorite: isFav,
                 sortPriority: isFav ? 1000 : 800,
+                date: gameDate,
                 period: status?.period,
                 awayLogo: logoURL(away),
                 homeLogo: logoURL(home),
@@ -64,7 +66,8 @@ struct BasketballAdapter: SportAdapter {
                 state: .final,
                 displayString: join(scoreLine, "Final"),
                 isFavorite: isFav,
-                sortPriority: isFav ? 300 : 100
+                sortPriority: isFav ? 300 : 100,
+                date: gameDate
             )
 
         default: // "pre"
@@ -77,7 +80,8 @@ struct BasketballAdapter: SportAdapter {
                 state: .pre(startDate: start),
                 displayString: join("\(awayAbbr) vs \(homeAbbr)", timeLabel),
                 isFavorite: isFav,
-                sortPriority: isFav ? 600 : 400
+                sortPriority: isFav ? 600 : 400,
+                date: gameDate
             )
         }
     }

@@ -31,6 +31,14 @@ extension LeagueID {
 /// breaking upstream change stays a localized, one-file fix.
 protocol SportAdapter {
     var league: LeagueID { get }
-    /// Fetch and normalize the current events for this league.
-    func fetch(using client: ESPNClient) async throws -> [SportEvent]
+    /// Fetch and normalize events for this league. `dates` (YYYYMMDD) selects a specific day
+    /// (for the ±24h favorites window); nil fetches the default day (today).
+    func fetch(using client: ESPNClient, dates: String?) async throws -> [SportEvent]
+}
+
+extension SportAdapter {
+    /// Convenience: today's events.
+    func fetch(using client: ESPNClient) async throws -> [SportEvent] {
+        try await fetch(using: client, dates: nil)
+    }
 }
