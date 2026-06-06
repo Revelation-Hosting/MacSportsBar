@@ -5,6 +5,9 @@
 Icon
 ._*
 
+# Packaged app bundle (produced by scripts/build-app.sh)
+*.app
+
 # Xcode
 ## User settings
 xcuserdata/

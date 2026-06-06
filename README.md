@@ -77,10 +77,26 @@ Want to sanity-check the live data path without the GUI?
 swift run MacSportsBar --smoke-test   # fetches once, prints the menu-bar strings, exits
 ```
 
-> **Distributing a built `.app`** to other machines trips Gatekeeper (unidentified
-> developer): the recipient allows it via **System Settings → Privacy & Security → Open
-> Anyway**, or you sign/notarize with an Apple Developer account. That packaging is out of
-> scope for the POC — running it yourself via `swift run` does not hit Gatekeeper.
+### Install as a real app (no terminal)
+
+`swift run` is great for development but ties up your terminal. To run MacSportsBar like a
+normal menu-bar app — launched from Finder/Spotlight, surviving terminal sessions — build a
+`.app` bundle:
+
+```bash
+./scripts/build-app.sh            # builds MacSportsBar.app in the repo root
+./scripts/build-app.sh --install  # …and also copies it to /Applications
+open MacSportsBar.app             # launch it (runs in the background; no dock icon)
+```
+
+**First launch — Gatekeeper:** the app is ad-hoc signed (not Developer-ID signed), so macOS
+blocks it the first time. Right-click the app ▸ **Open** (or **System Settings ▸ Privacy &
+Security ▸ Open Anyway**). After that it launches normally — add it to **System Settings ▸
+General ▸ Login Items** to start it at login.
+
+> Distributing the `.app` to *other* people's machines still trips Gatekeeper on their end;
+> for a seamless install you'd sign + notarize with an Apple Developer account ($99/yr). That
+> remains out of scope for the POC.
 
 ---
 
