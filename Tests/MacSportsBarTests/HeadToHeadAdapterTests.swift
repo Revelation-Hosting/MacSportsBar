@@ -38,6 +38,21 @@ final class HeadToHeadAdapterTests: XCTestCase {
         XCTAssertEqual(a.periodLabel(4), "OT")
     }
 
+    /// Period 5 is shared: a regular-season shootout vs. a playoff 2nd OT. The feed's detail
+    /// disambiguates; without it, count overtimes (no shootout assumed).
+    func testHockeyOvertimeVsShootout() {
+        let a = adapter(.hockey)
+        // Regular-season shootout — feed names it.
+        XCTAssertEqual(a.periodLabel(5, detail: "Shootout"), "SO")
+        XCTAssertEqual(a.periodLabel(5, detail: "Final/SO"), "SO")
+        // Playoff multi-OT — period 5 is the 2nd OT, not a shootout.
+        XCTAssertEqual(a.periodLabel(5, detail: "2nd OT"), "2OT")
+        XCTAssertEqual(a.periodLabel(6, detail: "3rd OT"), "3OT")
+        XCTAssertEqual(a.periodLabel(7), "4OT")
+        // No detail: don't assume a shootout — count it as the 2nd OT.
+        XCTAssertEqual(a.periodLabel(5), "2OT")
+    }
+
     func testSoccerHasNoPeriodLabel() {
         XCTAssertEqual(adapter(.soccer).periodLabel(2), "")
     }
@@ -56,6 +71,20 @@ final class HeadToHeadAdapterTests: XCTestCase {
             displayClock: "4:11", period: 2,
             type: .init(state: "in", completed: false, shortDetail: nil))
         XCTAssertEqual(adapter(.hockey).liveDetail(status), "4:11 2nd")
+    }
+
+    func testLiveDetailHockeyPlayoffDoubleOT() {
+        let status = HeadToHeadAdapter.Scoreboard.Status(
+            displayClock: "12:03", period: 5,
+            type: .init(state: "in", completed: false, shortDetail: "12:03 - 2nd OT"))
+        XCTAssertEqual(adapter(.hockey).liveDetail(status), "12:03 2OT")
+    }
+
+    func testLiveDetailHockeyShootout() {
+        let status = HeadToHeadAdapter.Scoreboard.Status(
+            displayClock: "0:00", period: 5,
+            type: .init(state: "in", completed: false, shortDetail: "Shootout"))
+        XCTAssertEqual(adapter(.hockey).liveDetail(status), "0:00 SO")
     }
 
     func testLiveDetailSoccerUsesShortDetail() {

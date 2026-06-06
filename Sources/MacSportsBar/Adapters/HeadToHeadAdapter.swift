@@ -71,13 +71,17 @@ struct HeadToHeadAdapter: SportAdapter {
             return status?.displayClock ?? ""
         case .quarters, .hockey:
             let clock = status?.displayClock ?? ""
-            let period = periodLabel(status?.period)
+            let period = periodLabel(status?.period, detail: status?.type?.shortDetail)
             return [clock, period].filter { !$0.isEmpty }.joined(separator: " ")
         }
     }
 
     /// Period label for clock-based sports. Soccer returns "" (it uses the minute instead).
-    func periodLabel(_ period: Int?) -> String {
+    ///
+    /// `detail` is ESPN's `shortDetail`, used only to disambiguate NHL period 5: a
+    /// regular-season game decided there is a shootout ("SO"), but the playoffs have no
+    /// shootout — period 4 is the 1st OT, period 5 the 2nd ("2OT"), period 6 the 3rd, etc.
+    func periodLabel(_ period: Int?, detail: String? = nil) -> String {
         guard let period, period > 0 else { return "" }
         switch style {
         case .quarters:
@@ -89,12 +93,25 @@ struct HeadToHeadAdapter: SportAdapter {
             case 2: return "2nd"
             case 3: return "3rd"
             case 4: return "OT"
-            case 5: return "SO"
-            default: return "\(period - 3)OT"
+            default:
+                // Period 5+ is multi-OT in the playoffs, but a regular-season game ending in
+                // period 5 is a shootout. Trust the feed when it names one; otherwise count OTs.
+                if period == 5, isShootout(detail) { return "SO" }
+                return "\(period - 3)OT"
             }
         case .soccer:
             return ""
         }
+    }
+
+    /// Whether ESPN's status detail names a shootout. The period number alone can't tell a
+    /// regular-season shootout from a playoff 2nd OT (both report period 5), but the detail can.
+    private func isShootout(_ detail: String?) -> Bool {
+        guard let detail else { return false }
+        if detail.lowercased().contains("shootout") { return true }
+        // Match the abbreviation "SO" as a standalone token (e.g. "Final/SO"), not as a
+        // substring of an unrelated word.
+        return detail.range(of: #"\bSO\b"#, options: .regularExpression) != nil
     }
 
     // MARK: - Helpers
