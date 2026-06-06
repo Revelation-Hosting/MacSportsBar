@@ -11,8 +11,9 @@ final class AppModel: ObservableObject {
     @Published var menuBarText: String = "Loading…"
     /// SF Symbol shown beside the menu-bar text — the current event's league glyph.
     @Published var menuBarSymbol: String = "sportscourt.fill"
-    /// Pre-rendered menu-bar label (glyph + score) as one template image. The status item
-    /// shows a label as *either* text or an image — never both — so we composite them.
+    /// Pre-rendered menu-bar label (glyph + score, with the matchup's color team logos
+    /// interleaved when enabled) as one composited image. The status item shows a label as
+    /// *either* text or an image — never both — so we composite them.
     @Published var menuBarImage: NSImage?
     /// Full ranked list, surfaced in the dropdown menu.
     @Published var events: [SportEvent] = []
@@ -24,7 +25,6 @@ final class AppModel: ObservableObject {
     private let logos = LogoCache()
     private let settings: Settings
     private var cancellables = Set<AnyCancellable>()
-    private var themeObserver: NSObjectProtocol?
 
     private var pollTask: Task<Void, Never>?
     private var cycleTask: Task<Void, Never>?
@@ -35,11 +35,18 @@ final class AppModel: ObservableObject {
     /// Cached yesterday/tomorrow favorite games (static, so refetched on a long throttle).
     private var adjacentFavorites: [SportEvent] = []
     private var adjacentFetchedAt: Date?
-    /// Logo URLs + per-team breakdown of the currently-displayed matchup, for the menu-bar
-    /// team-logos layout.
+    /// Logo URLs + per-team breakdown of the currently-displayed matchup, for the interleaved
+    /// menu-bar team-logos layout.
     private var currentAwayLogo: URL?
     private var currentHomeLogo: URL?
     private var currentMatchup: SportEvent.Matchup?
+    /// The menu bar's *own* light/dark appearance, fed from the status item by the SwiftUI
+    /// label (which is hosted in the menu bar, so it knows the real, wallpaper-driven tint —
+    /// unlike the app's appearance or the global Dark Mode setting, which both guessed wrong).
+    /// We color the interleaved (non-template) image's glyph + text to match it.
+    var menuBarColorScheme: ColorScheme = .light {
+        didSet { if menuBarColorScheme != oldValue { renderMenuBarImage() } }
+    }
 
     /// How fast the menu bar rotates when several events are relevant at once.
     private let cyclePeriod: Duration = .seconds(8)
@@ -52,24 +59,10 @@ final class AppModel: ObservableObject {
     init(settings: Settings = .shared) {
         self.settings = settings
         observeSettings()
-        observeAppearance()
         logos.onLoad = { [weak self] in self?.updateMenuBar() }
         if settings.notifyFavorites { notifications.requestAuthorizationIfNeeded() }
         startPolling()
         startCycling()
-    }
-
-    /// Re-render the menu bar when the system switches light/dark. The team-logo layout uses a
-    /// non-template (color) image whose glyph + text don't auto-adapt like a normal menu-bar
-    /// item — without this they'd stay in the old appearance's color (e.g. invisible after a
-    /// switch to dark mode).
-    private func observeAppearance() {
-        themeObserver = DistributedNotificationCenter.default().addObserver(
-            forName: Notification.Name("AppleInterfaceThemeChangedNotification"),
-            object: nil, queue: .main
-        ) { [weak self] _ in
-            Task { @MainActor in self?.updateMenuBar() }
-        }
     }
 
     // MARK: - Settings reactivity
@@ -316,7 +309,7 @@ final class AppModel: ObservableObject {
                 chosen = cycleCandidates.first ?? events.first
             }
             if let chosen {
-                menuBarText = truncate(chosen.displayString)
+                menuBarText = truncate(Self.barText(for: chosen))
                 menuBarSymbol = chosen.league.symbolName
                 currentAwayLogo = chosen.awayLogo
                 currentHomeLogo = chosen.homeLogo
@@ -331,9 +324,16 @@ final class AppModel: ObservableObject {
     }
 
     /// Composite the menu-bar label into a single `NSImage`, because the status item won't
-    /// render an icon and text together from a SwiftUI label. With team logos enabled and both
-    /// logos cached, shows the matchup's color logos; otherwise the monochrome league glyph
-    /// (a template image that adapts to the menu bar's light/dark appearance).
+    /// render an icon and text together from a SwiftUI label.
+    ///
+    /// With team logos enabled and both logos cached we interleave the matchup's *color* logos
+    /// (`[glyph][away] NY 39 - 42 SA [home] · 7:01 Q2`). Color forces a **non-template** image,
+    /// which the system won't auto-tint — so the glyph + text would render in a fixed color and
+    /// vanish against the wrong menu bar (the dark-mode "white text" bug). We fix that by
+    /// coloring them to `menuBarColorScheme`, which the SwiftUI label feeds us from the status
+    /// item's *own* appearance (the only source that tracks the real, wallpaper-driven menu bar
+    /// tint). Without logos we fall back to a **template** glyph + text, which AppKit auto-tints
+    /// to match the menu bar for free — exactly like the system clock.
     private func renderMenuBarImage() {
         let awayImage = settings.showTeamLogos ? logos.image(for: currentAwayLogo) : nil
         let homeImage = settings.showTeamLogos ? logos.image(for: currentHomeLogo) : nil
@@ -346,9 +346,6 @@ final class AppModel: ObservableObject {
             let score = matchup.awayScore.isEmpty
                 ? "\(matchup.away) vs \(matchup.home)"
                 : "\(matchup.away) \(matchup.awayScore) - \(matchup.homeScore) \(matchup.home)"
-            // Color logos force a non-template image, so the glyph + text won't auto-adapt —
-            // resolve `.primary` against the current menu-bar appearance instead.
-            let dark = NSApp.effectiveAppearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
             label = AnyView(
                 HStack(spacing: 4) {
                     Image(systemName: menuBarSymbol)
@@ -358,7 +355,8 @@ final class AppModel: ObservableObject {
                     if !matchup.detail.isEmpty { Text("· \(matchup.detail)") }
                 }
                 .font(.system(size: 13))
-                .environment(\.colorScheme, dark ? .dark : .light)
+                .foregroundStyle(menuBarColorScheme == .dark ? Color.white : Color.black)
+                .environment(\.colorScheme, menuBarColorScheme)
             )
             isTemplate = false  // logos keep their colors
         } else {
@@ -376,6 +374,17 @@ final class AppModel: ObservableObject {
         guard let image = renderer.nsImage else { return }
         image.isTemplate = isTemplate
         menuBarImage = image
+    }
+
+    /// The interleaved menu-bar readout for an event: `AWAY a - h HOME · detail`
+    /// (`AWAY vs HOME · detail` before tip-off) from the per-team matchup, else the event's own
+    /// display string (golf/racing have no matchup). Pure — a formatting seam the tests cover.
+    nonisolated static func barText(for event: SportEvent) -> String {
+        guard let m = event.matchup else { return event.displayString }
+        let core = m.awayScore.isEmpty
+            ? "\(m.away) vs \(m.home)"
+            : "\(m.away) \(m.awayScore) - \(m.homeScore) \(m.home)"
+        return m.detail.isEmpty ? core : "\(core) · \(m.detail)"
     }
 
     private func truncate(_ string: String) -> String {
