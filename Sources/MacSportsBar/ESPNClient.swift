@@ -20,12 +20,14 @@ struct ESPNClient {
         case badStatus(Int)
     }
 
-    /// GET `<base>/<sport>/<league>/scoreboard` and decode it as `T`.
-    func scoreboard<T: Decodable>(sport: String, league: String, as type: T.Type) async throws -> T {
+    /// GET `<base>/<sport>/<league>/<resource>` and decode it as `T`.
+    func resource<T: Decodable>(
+        sport: String, league: String, _ resource: String, as type: T.Type
+    ) async throws -> T {
         let url = baseURL
             .appendingPathComponent(sport)
             .appendingPathComponent(league)
-            .appendingPathComponent("scoreboard")
+            .appendingPathComponent(resource)
 
         var request = URLRequest(url: url)
         request.timeoutInterval = timeout
@@ -36,5 +38,10 @@ struct ESPNClient {
             throw ClientError.badStatus(http.statusCode)
         }
         return try JSONDecoder().decode(T.self, from: data)
+    }
+
+    /// GET `<base>/<sport>/<league>/scoreboard` and decode it as `T`.
+    func scoreboard<T: Decodable>(sport: String, league: String, as type: T.Type) async throws -> T {
+        try await resource(sport: sport, league: league, "scoreboard", as: type)
     }
 }
