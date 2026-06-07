@@ -115,6 +115,19 @@ final class GolfAdapterTests: XCTestCase {
         XCTAssertEqual(mapped.displayString, "Memorial Tournament · Burns −10 thru 13")
     }
 
+    func testPlayoffShowsPlayoffNotRound5() throws {
+        // ESPN marks sudden death as period 5 ("Playoff - In Progress"); don't print "R5".
+        let json = """
+        {"events":[{"id":"g6","name":"the Memorial Tournament pres. by Workday",
+          "status":{"type":{"state":"in"}},
+          "competitions":[{"status":{"period":5},"competitors":[
+            {"order":1,"score":"-12","athlete":{"displayName":"Ryan Gerard"}}
+          ]}]}]}
+        """
+        let mapped = try XCTUnwrap(adapter().map(firstEvent(json)))
+        XCTAssertEqual(mapped.displayString, "Memorial Tournament · Gerard −12 · Playoff")
+    }
+
     func testFinishedLeaderShowsF() throws {
         // Leader has completed all 18 of the current round → "· F".
         let json = """

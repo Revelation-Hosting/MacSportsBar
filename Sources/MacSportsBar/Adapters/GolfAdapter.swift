@@ -40,7 +40,9 @@ struct GolfAdapter: SportAdapter {
         case "in":
             var line = "\(short) · \(leaderLine)"
             let round = competition.status?.period
-            if let thru = leader.status?.thru ?? holesThrough(leader, round: round), thru > 0 {
+            if let round, round > 4 {
+                line += " · Playoff"                             // stroke play is 4 rounds; 5+ = sudden death
+            } else if let thru = leader.status?.thru ?? holesThrough(leader, round: round), thru > 0 {
                 line += thru >= 18 ? " · F" : " thru \(thru)"   // holes done this round, or finished
             } else if let round, round > 0 {
                 line += " · R\(round)"                            // round not yet started
