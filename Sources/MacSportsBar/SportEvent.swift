@@ -16,8 +16,9 @@ struct SportEvent: Identifiable {
     let state: State
     /// Compact, menu-bar-ready string, e.g. `NY 102  SA 98 · 4:32 Q4`.
     let displayString: String
-    /// Whether the user's favorites are involved (drives ranking).
-    let isFavorite: Bool
+    /// Whether the user's favorites are involved (drives ranking). Mutable so the model can
+    /// promote events from a followed series (golf/NASCAR) after the adapter has decoded them.
+    var isFavorite: Bool
     /// Higher sorts first. Convention: live-favorite > live > pre-favorite > pre > final.
     let sortPriority: Int
     /// Scheduled start time (the feed's UTC date), for the ±24h favorites window and for

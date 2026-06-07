@@ -12,6 +12,13 @@ struct SettingsView: View {
         }
     }
 
+    /// Enabled individual sports (golf/racing) — no team to pick, so you follow the whole series.
+    private var individualLeagues: [SupportedLeague] {
+        LeagueCatalog.all.filter {
+            settings.enabledLeagues.contains($0.id) && Self.isIndividual($0.league)
+        }
+    }
+
     private static func isIndividual(_ league: LeagueID) -> Bool {
         league.sport == "golf" || league.sport == "racing"
     }
@@ -32,7 +39,14 @@ struct SettingsView: View {
                 ForEach(teamLeagues) { league in
                     TeamPickerGroup(league: league, settings: settings, directory: directory)
                 }
-                Toggle("Show favorite teams only", isOn: $settings.favoritesOnly)
+                if !individualLeagues.isEmpty {
+                    ForEach(individualLeagues) { league in
+                        Toggle("Follow \(league.league.displayName)", isOn: following(league.id))
+                    }
+                    Text("Golf and NASCAR have no team to pick — follow the whole series so its events count as favorites. Add specific drivers/players below.")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+                Toggle("Show favorites only", isOn: $settings.favoritesOnly)
             }
 
             Section("Other favorites") {
@@ -80,6 +94,14 @@ struct SettingsView: View {
                 if isOn { settings.enabledLeagues.insert(id) }
                 else { settings.enabledLeagues.remove(id) }
             }
+        )
+    }
+
+    /// Binding for following an entire series (golf/NASCAR) by league slug.
+    private func following(_ id: String) -> Binding<Bool> {
+        Binding(
+            get: { settings.isFollowingLeague(id) },
+            set: { settings.setFollowingLeague(id, on: $0) }
         )
     }
 }

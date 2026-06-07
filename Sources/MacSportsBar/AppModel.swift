@@ -75,6 +75,7 @@ final class AppModel: ObservableObject {
             settings.$favorites.dropFirst().map { _ in () }.eraseToAnyPublisher(),
             settings.$refreshSeconds.dropFirst().map { _ in () }.eraseToAnyPublisher(),
             settings.$teamFavorites.dropFirst().map { _ in () }.eraseToAnyPublisher(),
+            settings.$followedLeagues.dropFirst().map { _ in () }.eraseToAnyPublisher(),
         ]
         Publishers.MergeMany(dataChanges)
             .debounce(for: .milliseconds(500), scheduler: RunLoop.main)
@@ -147,10 +148,27 @@ final class AppModel: ObservableObject {
             do { collected += try await adapter.fetch(using: client) }
             catch { continue }  // one sport failing must never take down the others
         }
-        lastRanked = collected.sorted { $0.sortPriority > $1.sortPriority }
+        let marked = Self.applyFollowedLeagues(collected, followed: settings.followedLeagues)
+        lastRanked = marked.sorted { $0.sortPriority > $1.sortPriority }
         notifications.process(events: lastRanked, enabled: settings.notifyFavorites)
         await updateFavoritesWindow()
         applyDisplay()
+    }
+
+    /// Promote events from a followed series to favorites. Golf and NASCAR have no team to
+    /// pick, so the user follows the whole tour/series; doing this here (rather than per-driver
+    /// in the adapter) makes every race/tournament in that league count as a favorite — so it
+    /// survives the favorites-only filter and joins the ±24h digest. Pure — a tested seam.
+    nonisolated static func applyFollowedLeagues(
+        _ events: [SportEvent], followed: Set<String>
+    ) -> [SportEvent] {
+        guard !followed.isEmpty else { return events }
+        return events.map { event in
+            guard !event.isFavorite, followed.contains(event.league.league) else { return event }
+            var promoted = event
+            promoted.isFavorite = true
+            return promoted
+        }
     }
 
     // MARK: - Favorites window (±24h)

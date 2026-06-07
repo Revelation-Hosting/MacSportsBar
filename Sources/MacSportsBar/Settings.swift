@@ -29,6 +29,10 @@ final class Settings: ObservableObject {
     /// Per-league favorite team abbreviations (lowercased), chosen in the team picker.
     /// Exact matches — no fuzzy substring matching like the free-form `favorites` field.
     @Published var teamFavorites: [String: Set<String>]
+    /// League slugs (golf/NASCAR) the user follows wholesale — these sports have no team to
+    /// pick, so following the *series* is how their events count as favorites (and survive the
+    /// favorites-only filter). Specific drivers/players can still be added via `favorites`.
+    @Published var followedLeagues: Set<String>
     /// Render the matchup's team logos (color) in the menu bar instead of the league glyph.
     @Published var showTeamLogos: Bool
 
@@ -47,6 +51,7 @@ final class Settings: ObservableObject {
         static let favoritesOnly = "favoritesOnly"
         static let notifyFavorites = "notifyFavorites"
         static let teamFavorites = "teamFavorites"
+        static let followedLeagues = "followedLeagues"
         static let showTeamLogos = "showTeamLogos"
     }
 
@@ -80,6 +85,7 @@ final class Settings: ObservableObject {
         } else {
             teamFavorites = [:]
         }
+        followedLeagues = Set(defaults.array(forKey: Key.followedLeagues) as? [String] ?? [])
         showTeamLogos = defaults.object(forKey: Key.showTeamLogos) as? Bool ?? false
 
         persist($enabledLeagues) { [weak self] in self?.defaults.set(Array($0), forKey: Key.enabledLeagues) }
@@ -98,7 +104,16 @@ final class Settings: ObservableObject {
             let encodable = favorites.mapValues { Array($0) }
             self?.defaults.set(try? JSONEncoder().encode(encodable), forKey: Key.teamFavorites)
         }
+        persist($followedLeagues) { [weak self] in self?.defaults.set(Array($0), forKey: Key.followedLeagues) }
         persist($showTeamLogos) { [weak self] in self?.defaults.set($0, forKey: Key.showTeamLogos) }
+    }
+
+    /// Whether the user follows an entire series (golf/NASCAR) by its league slug.
+    func isFollowingLeague(_ league: String) -> Bool { followedLeagues.contains(league) }
+
+    /// Follow or unfollow an entire series by its league slug.
+    func setFollowingLeague(_ league: String, on: Bool) {
+        if on { followedLeagues.insert(league) } else { followedLeagues.remove(league) }
     }
 
     /// Whether `abbreviation` is a favorite within `league` (slug).
@@ -113,9 +128,10 @@ final class Settings: ObservableObject {
         teamFavorites[league] = set.isEmpty ? nil : set
     }
 
-    /// Whether any favorites are configured at all — structured team picks or free-form tokens.
+    /// Whether any favorites are configured at all — structured team picks, followed series, or
+    /// free-form tokens.
     var hasAnyFavorites: Bool {
-        !teamFavorites.isEmpty || !favoriteTokens.isEmpty
+        !teamFavorites.isEmpty || !followedLeagues.isEmpty || !favoriteTokens.isEmpty
     }
 
     /// Parsed, lowercased favorite tokens used for matching against feed names.
