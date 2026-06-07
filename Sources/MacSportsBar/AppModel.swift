@@ -349,27 +349,25 @@ final class AppModel: ObservableObject {
     /// Composite the menu-bar label into a single `NSImage`, because the status item won't
     /// render an icon and text together from a SwiftUI label.
     ///
-    /// With team logos enabled and both logos cached we interleave the matchup's *color* logos
-    /// (`[glyph][away] NY 39 - 42 SA [home] · 7:01 Q2`). Color forces a **non-template** image,
-    /// which the system won't auto-tint — so the glyph + text would render in a fixed color and
-    /// vanish against the wrong menu bar (the dark-mode "white text" bug). We fix that by
-    /// coloring them to `menuBarColorScheme`, which the SwiftUI label feeds us from the status
-    /// item's *own* appearance (the only source that tracks the real, wallpaper-driven menu bar
-    /// tint). Without logos we fall back to a **template** glyph + text, which AppKit auto-tints
-    /// to match the menu bar for free — exactly like the system clock.
+    /// Every sport renders the *same* way: one flat (non-template) image whose glyph + text are
+    /// tinted to `menuBarColorScheme` — the menu bar's own light/dark appearance, which the
+    /// SwiftUI label feeds us from the status item itself (the only source that tracks the real,
+    /// wallpaper-driven tint; this is the dark-mode fix). Color team logos and the NASCAR flag
+    /// keep their own hue. We deliberately forgo the system's *template* vibrancy so a readout
+    /// with a color icon (logos/flag) and one without (golf, plain scores) look identically bold,
+    /// instead of the color ones rendering brighter than the template ones.
     private func renderMenuBarImage() {
         let awayImage = settings.showTeamLogos ? logos.image(for: currentAwayLogo) : nil
         let homeImage = settings.showTeamLogos ? logos.image(for: currentHomeLogo) : nil
 
-        let label: AnyView
-        let isTemplate: Bool
+        let content: AnyView
         if let awayImage, let homeImage, let matchup = currentMatchup {
             // [league glyph] [away logo] AWAY a - h HOME [home logo] · detail
             // ("AWAY vs HOME" for upcoming games, which have no score yet).
             let score = matchup.awayScore.isEmpty
                 ? "\(matchup.away) vs \(matchup.home)"
                 : "\(matchup.away) \(matchup.awayScore) - \(matchup.homeScore) \(matchup.home)"
-            label = AnyView(
+            content = AnyView(
                 HStack(spacing: 4) {
                     Image(systemName: menuBarSymbol)
                     Image(nsImage: awayImage).resizable().scaledToFit().frame(width: 15, height: 15)
@@ -377,41 +375,37 @@ final class AppModel: ObservableObject {
                     Image(nsImage: homeImage).resizable().scaledToFit().frame(width: 15, height: 15)
                     if !matchup.detail.isEmpty { Text("· \(matchup.detail)") }
                 }
-                .font(.system(size: 13))
-                .foregroundStyle(menuBarColorScheme == .dark ? Color.white : Color.black)
-                .environment(\.colorScheme, menuBarColorScheme)
             )
-            isTemplate = false  // logos keep their colors
         } else if let flag = currentFlag {
-            // Live NASCAR: a *colored* flag glyph (green/yellow/red) + the lap/leader text.
-            // Color forces a non-template image, so — like the logo path — tint the text to the
-            // menu bar's own appearance so it stays legible in dark mode; the flag keeps its hue.
+            // Live NASCAR: a *colored* flag glyph (green/yellow/red) keeps its hue; checkered/pace
+            // and the text tint with the menu bar below.
             let (symbol, color) = Self.flagGlyph(flag)
-            label = AnyView(
+            content = AnyView(
                 HStack(spacing: 4) {
                     if let color { Image(systemName: symbol).foregroundStyle(color) }
-                    else { Image(systemName: symbol) }   // checkered/pace → tint with the text
+                    else { Image(systemName: symbol) }
                     Text(menuBarText)
                 }
-                .font(.system(size: 13))
-                .foregroundStyle(menuBarColorScheme == .dark ? Color.white : Color.black)
-                .environment(\.colorScheme, menuBarColorScheme)
             )
-            isTemplate = false  // colored flag
         } else {
-            label = AnyView(
+            content = AnyView(
                 HStack(spacing: 4) {
                     Image(systemName: menuBarSymbol)
                     Text(menuBarText)
-                }.font(.system(size: 13))
+                }
             )
-            isTemplate = true  // monochrome glyph adapts to light/dark
         }
+
+        // One uniform treatment for all three: flat, tinted to the menu bar's own appearance.
+        let label = content
+            .font(.system(size: 13))
+            .foregroundStyle(menuBarColorScheme == .dark ? Color.white : Color.black)
+            .environment(\.colorScheme, menuBarColorScheme)
 
         let renderer = ImageRenderer(content: label)
         renderer.scale = 2  // render @2x for crisp text on Retina
         guard let image = renderer.nsImage else { return }
-        image.isTemplate = isTemplate
+        image.isTemplate = false  // uniform flat look across every sport
         menuBarImage = image
     }
 
