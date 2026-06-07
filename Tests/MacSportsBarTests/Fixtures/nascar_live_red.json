@@ -1,0 +1,56 @@
+{
+  "lap_number": 149,
+  "flag_state": 3,
+  "race_id": 5612,
+  "laps_in_race": 200,
+  "laps_to_go": 51,
+  "run_name": "FireKeepers Casino 400",
+  "run_type": 3,
+  "series_id": 1,
+  "track_name": "Michigan Int'l Speedway",
+  "number_of_lead_changes": 21,
+  "number_of_caution_segments": 10,
+  "stage": {
+    "stage_num": 3,
+    "finish_at_lap": 200,
+    "laps_in_stage": 80
+  },
+  "vehicles": [
+    {
+      "running_position": 1,
+      "vehicle_number": "24",
+      "vehicle_manufacturer": "Chv",
+      "sponsor_name": "Axalta Solar Boost",
+      "status": 1,
+      "driver": {
+        "full_name": "William Byron",
+        "first_name": "William",
+        "last_name": "Byron"
+      }
+    },
+    {
+      "running_position": 2,
+      "vehicle_number": "7",
+      "vehicle_manufacturer": "Chv",
+      "sponsor_name": "NationsGuard",
+      "status": 1,
+      "driver": {
+        "full_name": "Daniel Suarez",
+        "first_name": "Daniel",
+        "last_name": "Suarez"
+      }
+    },
+    {
+      "running_position": 3,
+      "vehicle_number": "1",
+      "vehicle_manufacturer": "Chv",
+      "sponsor_name": "Busch Light",
+      "status": 1,
+      "driver": {
+        "full_name": "Ross Chastain",
+        "first_name": "Ross",
+        "last_name": "Chastain"
+      }
+    }
+  ]
+}

@@ -57,6 +57,14 @@ final class NASCARLiveFeedTests: XCTestCase {
         XCTAssertFalse(live.finished)
     }
 
+    func testRedFlagFromRealFixture() throws {
+        // Trimmed real capture of the actual red flag thrown at Michigan (lap 149, stage 3).
+        let live = try XCTUnwrap(RacingAdapter.liveReadout(from: fixture("nascar_live_red")))
+        XCTAssertEqual(live.flag, .red)
+        XCTAssertEqual(live.detail, "L149/200 · St3 29/80 · #24 Byron")
+        XCTAssertFalse(live.finished, "a red flag stops the race but it isn't over")
+    }
+
     // MARK: - Stage-lap label
 
     func testStageLabelComputesLapsIntoStage() {
