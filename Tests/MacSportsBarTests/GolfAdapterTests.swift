@@ -128,6 +128,22 @@ final class GolfAdapterTests: XCTestCase {
         XCTAssertEqual(mapped.displayString, "Memorial Tournament · Gerard −12 · Playoff")
     }
 
+    func testPlayoffCompleteShowsFinalNotPlayoff() throws {
+        // After a playoff ESPN lags the event state at "in" while the competition is completed
+        // ("Playoff - Play Complete"); the winner should show, not "Playoff".
+        let json = """
+        {"events":[{"id":"g7","name":"the Memorial Tournament pres. by Workday",
+          "status":{"type":{"state":"in"}},
+          "competitions":[{"status":{"period":5,"type":{"state":"post","completed":true,"detail":"Playoff - Play Complete"}},
+            "competitors":[
+              {"order":1,"score":"-12","athlete":{"displayName":"J.T. Poston"}}
+            ]}]}]}
+        """
+        let mapped = try XCTUnwrap(adapter().map(firstEvent(json)))
+        XCTAssertEqual(mapped.displayString, "Memorial Tournament · Poston −12 · Final")
+        guard case .final = mapped.state else { return XCTFail("expected .final") }
+    }
+
     func testFinishedLeaderShowsF() throws {
         // Leader has completed all 18 of the current round → "· F".
         let json = """

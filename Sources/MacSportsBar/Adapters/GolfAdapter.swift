@@ -32,7 +32,13 @@ struct GolfAdapter: SportAdapter {
         let leaderName = lastName(leader.athlete?.displayName ?? "—")
         let scored = leader.score.map(formatScore) ?? ""
         let leaderLine = scored.isEmpty ? leaderName : "\(leaderName) \(scored)"
-        let state = event.status?.type?.state ?? "pre"
+        // ESPN can lag the *event* state behind the *competition* state — after a playoff the
+        // event still says "in" while the competition is marked completed ("Playoff - Play
+        // Complete"). Trust completion so a finished tournament shows the winner, not "Playoff".
+        let compType = competition.status?.type
+        let state = (compType?.completed == true || compType?.state == "post")
+            ? "post"
+            : (event.status?.type?.state ?? compType?.state ?? "pre")
         let isFav = isFavorite(leader.athlete)
         let id = event.id ?? short
 
