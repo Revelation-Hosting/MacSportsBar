@@ -17,8 +17,8 @@ Coca-Cola 600 · L245/400 · St3 · #5 Larson   ← live NASCAR Cup
 > milestone (see [Roadmap](#roadmap)). **Ten leagues across seven sports** — NBA, MLB, NFL,
 > NHL, NCAA football, soccer (Premier League / Champions League / MLS), PGA golf, and NASCAR
 > — render in the menu bar today, each tagged with a league glyph, on an adaptive poll
-> cadence. (NASCAR currently shows the leader/winner; live lap/stage telemetry is a planned
-> upgrade — see the roadmap.)
+> cadence. (NASCAR shows **live lap/stage/flag telemetry** with a colored flag glyph, sourced
+> from NASCAR's own timing feed — ESPN holds no NASCAR rights, so its feed has none.)
 
 ---
 
@@ -51,7 +51,7 @@ Coca-Cola 600 · L245/400 · St3 · #5 Larson   ← live NASCAR Cup
 | Hockey           | NHL                             | head-to-head   | **live (M6)** |
 | Soccer           | Premier League, UCL, MLS        | head-to-head   | **live (M6)** |
 | Golf             | PGA                             | leaderboard    | **live (M4)** |
-| Auto racing      | NASCAR Cup                      | field          | **live (M5, degraded)** |
+| Auto racing      | NASCAR Cup                      | field          | **live (M5 + M12: laps/stage/flags)** |
 
 See the full design in **[menubar-sports-app-spec.md](menubar-sports-app-spec.md)**.
 
@@ -111,11 +111,12 @@ General ▸ Login Items** to start it at login.
 
 ## Tests
 
-The deterministic model and formatting logic is covered by **60 hermetic XCTest cases** —
+The deterministic model and formatting logic is covered by **109 hermetic XCTest cases** —
 every adapter's decode → format path (basketball; baseball with base/out state; the generic
-head-to-head adapter for football, hockey, and soccer; the golf leaderboard; and NASCAR),
-period/inning labels, menu-bar truncation and cycle selection, favorites matching, and the
-league auto-enable migration. Fixtures are inline JSON or a captured real ESPN payload.
+head-to-head adapter for football, hockey, and soccer; the golf leaderboard; NASCAR's ESPN
+baseline; and the NASCAR live-feed mapping with its flag-state enum), period/inning labels,
+menu-bar truncation and cycle selection, favorites matching, the followed-series logic, and the
+league auto-enable migration. Fixtures are inline JSON or captured real ESPN/NASCAR payloads.
 
 ```bash
 swift test
@@ -156,6 +157,11 @@ A small, isolated-adapter architecture so a breaking upstream change is a one-fi
   pre-formatted menu-bar string.
 - `ESPNClient` — a thin HTTP chokepoint where caching, timeouts, and a future base-URL
   swap live in one place.
+- `NASCARClient` — a second chokepoint for NASCAR's own live timing feed, which carries the
+  lap/stage/flag telemetry ESPN lacks (ESPN holds no NASCAR rights). It's the one sport that
+  blends two sources: ESPN for the schedule/final, NASCAR's feed to enrich a live race. Handy
+  bonus — NASCAR publishes a [Swagger spec](https://feed.nascar.com/swagger), so its field
+  names and enums are documented rather than reverse-engineered.
 
 Polling is adaptive and deliberately gentle: slow (every 5–10 min) when nothing is live,
 fast (10–30s) when a relevant event is in progress, with finals cached on a long TTL.
@@ -173,9 +179,8 @@ Full architecture, per-sport display formats, and polling policy are documented 
 - **M3** — MLB with live base/out state + adaptive polling (NBA landed early in M1). ✅ **done**
 - **M4** — PGA golf leaderboard (intermittent handling). ✅ **done** (endpoint confirmed:
   `golf/pga/scoreboard`)
-- **M5** — NASCAR Cup. ✅ **done (degraded)** — shows the leader/winner + race time. Live
-  lap/stage/leader telemetry (from the per-event detail endpoint) needs a green-flag Cup race
-  to verify the field paths; that upgrade is pending.
+- **M5** — NASCAR Cup. ✅ **done** — started degraded (ESPN leader/winner only), now upgraded
+  in **M12**.
 - **M6** — League expansion: NFL, NHL, NCAA football, and soccer (Premier League / Champions
   League / MLS) on a shared head-to-head adapter, each with its own glyph. ✅ **done**
 - **M7** — Favorites notifications, scoped to boundaries (end of period/inning/half + final),
@@ -186,17 +191,21 @@ Full architecture, per-sport display formats, and polling policy are documented 
   of the league glyph). ✅ **done**
 - **M10** — ±24h favorites window: recent finals + live + upcoming for your teams, in the
   dropdown digest and the ticker (adjacent days fetched only for leagues with favorites). ✅ **done**
-- **M11** — Polish: an app icon, live NASCAR lap/stage telemetry, and edge cases
-  (postponed/OT/rain delay).
+- **M11** — Polish: an app icon and edge cases (postponed/OT/rain delay).
+- **M12** — Real NASCAR live telemetry from NASCAR's own timing feed (`cf.nascar.com`, with a
+  documented [Swagger spec](https://feed.nascar.com/swagger)): live lap/stage, running order with
+  car number, and a colored flag glyph (green/yellow/red/checkered). ESPN — which holds no NASCAR
+  rights — can't provide this, so the live race blends ESPN (schedule/final) with NASCAR's
+  feed. ✅ **done**
 
 ---
 
 ## Disclaimer
 
-This project pulls scores from **public, undocumented sports data endpoints that are not
-officially supported**. Those endpoints can change shape or disappear without notice, and
-this project is **not affiliated with, endorsed by, or sponsored by** any data provider,
-league, team, or broadcaster.
+This project pulls scores from **public sports data endpoints that are not officially
+supported for third-party use** (ESPN's, and NASCAR's own timing feed). Those endpoints can
+change shape or disappear without notice, and this project is **not affiliated with, endorsed
+by, or sponsored by** any data provider, league, team, or broadcaster.
 
 All league names, team names, driver names, and logos (e.g. NBA, MLB, PGA TOUR, NASCAR,
 and the relevant universities) are trademarks of their respective owners and are used here

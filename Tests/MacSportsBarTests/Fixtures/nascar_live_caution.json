@@ -1,0 +1,56 @@
+{
+  "lap_number": 47,
+  "flag_state": 2,
+  "race_id": 5612,
+  "laps_in_race": 200,
+  "laps_to_go": 153,
+  "run_name": "FireKeepers Casino 400",
+  "run_type": 3,
+  "series_id": 1,
+  "track_name": "Michigan Int'l Speedway",
+  "number_of_lead_changes": 2,
+  "number_of_caution_segments": 3,
+  "stage": {
+    "stage_num": 2,
+    "finish_at_lap": 120,
+    "laps_in_stage": 75
+  },
+  "vehicles": [
+    {
+      "running_position": 1,
+      "vehicle_number": "45",
+      "vehicle_manufacturer": "Tyt",
+      "sponsor_name": "ROCKSTAR ENERGY DRINK",
+      "status": 1,
+      "driver": {
+        "full_name": "Tyler Reddick",
+        "first_name": "Tyler",
+        "last_name": "Reddick"
+      }
+    },
+    {
+      "running_position": 2,
+      "vehicle_number": "54",
+      "vehicle_manufacturer": "Tyt",
+      "sponsor_name": "Monster Energy",
+      "status": 1,
+      "driver": {
+        "full_name": "Ty Gibbs",
+        "first_name": "Ty",
+        "last_name": "Gibbs"
+      }
+    },
+    {
+      "running_position": 3,
+      "vehicle_number": "77",
+      "vehicle_manufacturer": "Chv",
+      "sponsor_name": "Zeigler Auto Group",
+      "status": 1,
+      "driver": {
+        "full_name": "Carson Hocevar",
+        "first_name": "Carson",
+        "last_name": "Hocevar"
+      }
+    }
+  ]
+}

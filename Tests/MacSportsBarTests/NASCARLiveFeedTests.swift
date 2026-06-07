@@ -31,28 +31,28 @@ final class NASCARLiveFeedTests: XCTestCase {
 
     // MARK: - liveReadout (pure mapping)
 
-    func testGreenFromRealFixture() throws {
+    /// Decode a bundled real-capture fixture the way `NASCARClient` does.
+    private func fixture(_ name: String) throws -> NASCARLiveFeed {
         let url = try XCTUnwrap(Bundle.module.url(
-            forResource: "nascar_live_green", withExtension: "json", subdirectory: "Fixtures"))
+            forResource: name, withExtension: "json", subdirectory: "Fixtures"),
+            "bundled fixture \(name) not found — check Package.swift resources")
         let decoder = JSONDecoder(); decoder.keyDecodingStrategy = .convertFromSnakeCase
-        let f = try decoder.decode(NASCARLiveFeed.self, from: Data(contentsOf: url))
+        return try decoder.decode(NASCARLiveFeed.self, from: Data(contentsOf: url))
+    }
 
-        let live = try XCTUnwrap(RacingAdapter.liveReadout(from: f))
+    func testGreenFromRealFixture() throws {
+        let live = try XCTUnwrap(RacingAdapter.liveReadout(from: fixture("nascar_live_green")))
         XCTAssertEqual(live.detail, "L36/200 · St1 · #45 Reddick")
         XCTAssertEqual(live.flag, .green)
         XCTAssertEqual(live.leaderName, "Reddick")
         XCTAssertFalse(live.finished)
     }
 
-    func testCautionKeepsLapAndLeader() throws {
-        let f = try feed("""
-        {"series_id":1,"run_type":3,"flag_state":2,"lap_number":46,"laps_in_race":200,
-         "laps_to_go":154,"stage":{"stage_num":2},
-         "vehicles":[{"running_position":1,"vehicle_number":"45","driver":{"full_name":"Tyler Reddick"}}]}
-        """)
-        let live = try XCTUnwrap(RacingAdapter.liveReadout(from: f))
+    func testCautionFromRealFixture() throws {
+        // Trimmed real capture from the moment stage 1 ended (lap 47, yellow).
+        let live = try XCTUnwrap(RacingAdapter.liveReadout(from: fixture("nascar_live_caution")))
         XCTAssertEqual(live.flag, .caution)
-        XCTAssertEqual(live.detail, "L46/200 · St2 · #45 Reddick")
+        XCTAssertEqual(live.detail, "L47/200 · St2 · #45 Reddick")
         XCTAssertFalse(live.finished)
     }
 
