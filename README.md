@@ -6,6 +6,20 @@ A native macOS **menu bar app** that shows live sports scores as a compact, glan
 string in the system menu bar — a tiny always-there scoreboard, no dock icon and no
 window in the way.
 
+## Screenshots
+<b>MLB Baseball</b><br/>
+<img width="306" height="36" alt="Screenshot 2026-06-07 at 1 30 28 PM" src="https://github.com/user-attachments/assets/100a190a-bb1b-4c80-b5d1-75c857bb7c41" />
+<br/>
+<b>NASCAR</b><br/>
+<img width="415" height="33" alt="Screenshot 2026-06-07 at 1 30 20 PM" src="https://github.com/user-attachments/assets/af4cb952-8506-4cd3-b6e8-8ccd05162b08" />
+<img width="384" height="30" alt="image" src="https://github.com/user-attachments/assets/08ea939f-1760-4b3c-99fe-d570b29fded1" />
+<br/>
+<b>PGA Golf</b><br/>
+<img width="341" height="30" alt="Screenshot 2026-06-07 at 3 04 53 PM" src="https://github.com/user-attachments/assets/2b87fd8a-4553-4ffb-8b38-485b40738e22" />
+
+
+
+## Text Examples
 ```
 GONZ 72  UCLA 68 · 4:32 2H          ← live NCAA basketball
 SEA 3  TEX 2 · Bot 7th · 2 out · [1_3]   ← live MLB with base/out state
