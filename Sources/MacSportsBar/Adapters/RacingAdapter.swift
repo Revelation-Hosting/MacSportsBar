@@ -27,19 +27,20 @@ struct RacingAdapter: SportAdapter {
         let rawEvents = payload.events ?? []
         var events = rawEvents.map(map)
 
-        // Live lap/stage/flag come from NASCAR's feed (the current run), so only for "today".
+        // Enrich with NASCAR's live feed ONLY when it shows an actively-running Cup race AND
+        // ESPN lists a race today. Both guards matter: the live feed sits on the *last* race
+        // between events, so requiring a non-finished flag (`liveReadout` already drops
+        // 9-Not Active) plus a same-day ESPN event prevents surfacing a stale result on a
+        // non-race day or pinning last week's finish onto next week's scheduled race. Final
+        // results and the schedule stay with ESPN.
         guard dates == nil,
               let feed = try? await nascar.liveFeed(),
-              let live = Self.liveReadout(from: feed) else { return events }
+              let live = Self.liveReadout(from: feed),
+              !live.finished,
+              let idx = events.indices.first else { return events }
 
-        if let idx = events.indices.first {
-            let short = shortRace(rawEvents[idx].name ?? rawEvents[idx].shortName ?? "Race")
-            events[idx] = mergeLive(into: events[idx], short: short, live: live)
-        } else {
-            // ESPN had no race event for today — synthesize one from the NASCAR feed.
-            let short = feed.trackName.map(Self.shortTrack) ?? feed.runName ?? "Race"
-            events.append(synthesize(short: short, live: live, raceId: feed.raceId))
-        }
+        let short = shortRace(rawEvents[idx].name ?? rawEvents[idx].shortName ?? "Race")
+        events[idx] = mergeLive(into: events[idx], short: short, live: live)
         return events
     }
 
@@ -105,12 +106,6 @@ struct RacingAdapter: SportAdapter {
         return last
     }
 
-    /// Full track name → short locale: "Michigan Int'l Speedway 2.0" → "Michigan". Used only
-    /// when ESPN has no event to borrow a short name from.
-    static func shortTrack(_ name: String) -> String {
-        name.split(separator: " ").first.map(String.init) ?? name
-    }
-
     // MARK: - NASCAR live feed (the real lap/stage/flag telemetry)
 
     /// The live readout derived purely from NASCAR's feed. Pure — the seam the tests exercise.
@@ -153,28 +148,17 @@ struct RacingAdapter: SportAdapter {
     }
 
     /// Merge the live NASCAR readout onto the day's ESPN race event (keeping its id/date/league).
+    /// Only called for an actively-running race (the caller guards `!finished`), so it's always
+    /// a live event.
     private func mergeLive(into base: SportEvent, short: String, live: LiveReadout) -> SportEvent {
         let isFav = base.isFavorite || favoriteMatches(live.leaderName)
         var event = base
-        event.state = live.finished ? .final : .live
+        event.state = .live
         event.displayString = "\(short) · \(live.detail)"
         event.isFavorite = isFav
-        event.sortPriority = live.finished ? (isFav ? 300 : 100) : (isFav ? 1000 : 800)
+        event.sortPriority = isFav ? 1000 : 800
         event.flag = live.flag
         return event
-    }
-
-    /// Build a standalone event from the NASCAR feed when ESPN listed no race for today.
-    private func synthesize(short: String, live: LiveReadout, raceId: Int?) -> SportEvent {
-        let isFav = favoriteMatches(live.leaderName)
-        return SportEvent(
-            id: raceId.map { "nascar-\($0)" } ?? "nascar-live",
-            league: league,
-            state: live.finished ? .final : .live,
-            displayString: "\(short) · \(live.detail)",
-            isFavorite: isFav,
-            sortPriority: live.finished ? (isFav ? 300 : 100) : (isFav ? 1000 : 800),
-            flag: live.flag)
     }
 
     /// Whether a driver surname matches a favorite token (free-form, lowercased substring).
