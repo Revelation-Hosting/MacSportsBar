@@ -1,0 +1,730 @@
+{
+  "events": [
+    {
+      "id": "401811950",
+      "name": "the Memorial Tournament pres. by Workday",
+      "shortName": "the Memorial Tournament pres. by Workday",
+      "date": "2026-06-04T04:00Z",
+      "status": {
+        "type": {
+          "id": "2",
+          "name": "STATUS_IN_PROGRESS",
+          "state": "in",
+          "completed": false,
+          "description": "In Progress"
+        }
+      },
+      "competitions": [
+        {
+          "status": {
+            "period": 4,
+            "type": {
+              "id": "2",
+              "name": "STATUS_IN_PROGRESS",
+              "state": "in",
+              "completed": false,
+              "description": "In Progress",
+              "detail": "Round 4 - In Progress",
+              "shortDetail": "Round 4 - In Progress"
+            }
+          },
+          "competitors": [
+            {
+              "order": 1,
+              "score": "-10",
+              "athlete": {
+                "displayName": "Sam Burns"
+              },
+              "linescores": [
+                {
+                  "period": 1,
+                  "linescores": [
+                    {
+                      "period": 1
+                    },
+                    {
+                      "period": 2
+                    },
+                    {
+                      "period": 3
+                    },
+                    {
+                      "period": 4
+                    },
+                    {
+                      "period": 5
+                    },
+                    {
+                      "period": 6
+                    },
+                    {
+                      "period": 7
+                    },
+                    {
+                      "period": 8
+                    },
+                    {
+                      "period": 9
+                    },
+                    {
+                      "period": 10
+                    },
+                    {
+                      "period": 11
+                    },
+                    {
+                      "period": 12
+                    },
+                    {
+                      "period": 13
+                    },
+                    {
+                      "period": 14
+                    },
+                    {
+                      "period": 15
+                    },
+                    {
+                      "period": 16
+                    },
+                    {
+                      "period": 17
+                    },
+                    {
+                      "period": 18
+                    }
+                  ]
+                },
+                {
+                  "period": 2,
+                  "linescores": [
+                    {
+                      "period": 1
+                    },
+                    {
+                      "period": 2
+                    },
+                    {
+                      "period": 3
+                    },
+                    {
+                      "period": 4
+                    },
+                    {
+                      "period": 5
+                    },
+                    {
+                      "period": 6
+                    },
+                    {
+                      "period": 7
+                    },
+                    {
+                      "period": 8
+                    },
+                    {
+                      "period": 9
+                    },
+                    {
+                      "period": 10
+                    },
+                    {
+                      "period": 11
+                    },
+                    {
+                      "period": 12
+                    },
+                    {
+                      "period": 13
+                    },
+                    {
+                      "period": 14
+                    },
+                    {
+                      "period": 15
+                    },
+                    {
+                      "period": 16
+                    },
+                    {
+                      "period": 17
+                    },
+                    {
+                      "period": 18
+                    }
+                  ]
+                },
+                {
+                  "period": 3,
+                  "linescores": [
+                    {
+                      "period": 1
+                    },
+                    {
+                      "period": 2
+                    },
+                    {
+                      "period": 3
+                    },
+                    {
+                      "period": 4
+                    },
+                    {
+                      "period": 5
+                    },
+                    {
+                      "period": 6
+                    },
+                    {
+                      "period": 7
+                    },
+                    {
+                      "period": 8
+                    },
+                    {
+                      "period": 9
+                    },
+                    {
+                      "period": 10
+                    },
+                    {
+                      "period": 11
+                    },
+                    {
+                      "period": 12
+                    },
+                    {
+                      "period": 13
+                    },
+                    {
+                      "period": 14
+                    },
+                    {
+                      "period": 15
+                    },
+                    {
+                      "period": 16
+                    },
+                    {
+                      "period": 17
+                    },
+                    {
+                      "period": 18
+                    }
+                  ]
+                },
+                {
+                  "period": 4,
+                  "linescores": [
+                    {
+                      "period": 1
+                    },
+                    {
+                      "period": 2
+                    },
+                    {
+                      "period": 3
+                    },
+                    {
+                      "period": 4
+                    },
+                    {
+                      "period": 5
+                    },
+                    {
+                      "period": 6
+                    },
+                    {
+                      "period": 7
+                    },
+                    {
+                      "period": 8
+                    },
+                    {
+                      "period": 9
+                    },
+                    {
+                      "period": 10
+                    },
+                    {
+                      "period": 11
+                    },
+                    {
+                      "period": 12
+                    },
+                    {
+                      "period": 13
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "order": 2,
+              "score": "-10",
+              "athlete": {
+                "displayName": "Ryan Gerard"
+              },
+              "linescores": [
+                {
+                  "period": 1,
+                  "linescores": [
+                    {
+                      "period": 1
+                    },
+                    {
+                      "period": 2
+                    },
+                    {
+                      "period": 3
+                    },
+                    {
+                      "period": 4
+                    },
+                    {
+                      "period": 5
+                    },
+                    {
+                      "period": 6
+                    },
+                    {
+                      "period": 7
+                    },
+                    {
+                      "period": 8
+                    },
+                    {
+                      "period": 9
+                    },
+                    {
+                      "period": 10
+                    },
+                    {
+                      "period": 11
+                    },
+                    {
+                      "period": 12
+                    },
+                    {
+                      "period": 13
+                    },
+                    {
+                      "period": 14
+                    },
+                    {
+                      "period": 15
+                    },
+                    {
+                      "period": 16
+                    },
+                    {
+                      "period": 17
+                    },
+                    {
+                      "period": 18
+                    }
+                  ]
+                },
+                {
+                  "period": 2,
+                  "linescores": [
+                    {
+                      "period": 1
+                    },
+                    {
+                      "period": 2
+                    },
+                    {
+                      "period": 3
+                    },
+                    {
+                      "period": 4
+                    },
+                    {
+                      "period": 5
+                    },
+                    {
+                      "period": 6
+                    },
+                    {
+                      "period": 7
+                    },
+                    {
+                      "period": 8
+                    },
+                    {
+                      "period": 9
+                    },
+                    {
+                      "period": 10
+                    },
+                    {
+                      "period": 11
+                    },
+                    {
+                      "period": 12
+                    },
+                    {
+                      "period": 13
+                    },
+                    {
+                      "period": 14
+                    },
+                    {
+                      "period": 15
+                    },
+                    {
+                      "period": 16
+                    },
+                    {
+                      "period": 17
+                    },
+                    {
+                      "period": 18
+                    }
+                  ]
+                },
+                {
+                  "period": 3,
+                  "linescores": [
+                    {
+                      "period": 1
+                    },
+                    {
+                      "period": 2
+                    },
+                    {
+                      "period": 3
+                    },
+                    {
+                      "period": 4
+                    },
+                    {
+                      "period": 5
+                    },
+                    {
+                      "period": 6
+                    },
+                    {
+                      "period": 7
+                    },
+                    {
+                      "period": 8
+                    },
+                    {
+                      "period": 9
+                    },
+                    {
+                      "period": 10
+                    },
+                    {
+                      "period": 11
+                    },
+                    {
+                      "period": 12
+                    },
+                    {
+                      "period": 13
+                    },
+                    {
+                      "period": 14
+                    },
+                    {
+                      "period": 15
+                    },
+                    {
+                      "period": 16
+                    },
+                    {
+                      "period": 17
+                    },
+                    {
+                      "period": 18
+                    }
+                  ]
+                },
+                {
+                  "period": 4,
+                  "linescores": [
+                    {
+                      "period": 1
+                    },
+                    {
+                      "period": 2
+                    },
+                    {
+                      "period": 3
+                    },
+                    {
+                      "period": 4
+                    },
+                    {
+                      "period": 5
+                    },
+                    {
+                      "period": 6
+                    },
+                    {
+                      "period": 7
+                    },
+                    {
+                      "period": 8
+                    },
+                    {
+                      "period": 9
+                    },
+                    {
+                      "period": 10
+                    },
+                    {
+                      "period": 11
+                    },
+                    {
+                      "period": 12
+                    },
+                    {
+                      "period": 13
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "order": 3,
+              "score": "-9",
+              "athlete": {
+                "displayName": "Wyndham Clark"
+              },
+              "linescores": [
+                {
+                  "period": 1,
+                  "linescores": [
+                    {
+                      "period": 1
+                    },
+                    {
+                      "period": 2
+                    },
+                    {
+                      "period": 3
+                    },
+                    {
+                      "period": 4
+                    },
+                    {
+                      "period": 5
+                    },
+                    {
+                      "period": 6
+                    },
+                    {
+                      "period": 7
+                    },
+                    {
+                      "period": 8
+                    },
+                    {
+                      "period": 9
+                    },
+                    {
+                      "period": 10
+                    },
+                    {
+                      "period": 11
+                    },
+                    {
+                      "period": 12
+                    },
+                    {
+                      "period": 13
+                    },
+                    {
+                      "period": 14
+                    },
+                    {
+                      "period": 15
+                    },
+                    {
+                      "period": 16
+                    },
+                    {
+                      "period": 17
+                    },
+                    {
+                      "period": 18
+                    }
+                  ]
+                },
+                {
+                  "period": 2,
+                  "linescores": [
+                    {
+                      "period": 1
+                    },
+                    {
+                      "period": 2
+                    },
+                    {
+                      "period": 3
+                    },
+                    {
+                      "period": 4
+                    },
+                    {
+                      "period": 5
+                    },
+                    {
+                      "period": 6
+                    },
+                    {
+                      "period": 7
+                    },
+                    {
+                      "period": 8
+                    },
+                    {
+                      "period": 9
+                    },
+                    {
+                      "period": 10
+                    },
+                    {
+                      "period": 11
+                    },
+                    {
+                      "period": 12
+                    },
+                    {
+                      "period": 13
+                    },
+                    {
+                      "period": 14
+                    },
+                    {
+                      "period": 15
+                    },
+                    {
+                      "period": 16
+                    },
+                    {
+                      "period": 17
+                    },
+                    {
+                      "period": 18
+                    }
+                  ]
+                },
+                {
+                  "period": 3,
+                  "linescores": [
+                    {
+                      "period": 1
+                    },
+                    {
+                      "period": 2
+                    },
+                    {
+                      "period": 3
+                    },
+                    {
+                      "period": 4
+                    },
+                    {
+                      "period": 5
+                    },
+                    {
+                      "period": 6
+                    },
+                    {
+                      "period": 7
+                    },
+                    {
+                      "period": 8
+                    },
+                    {
+                      "period": 9
+                    },
+                    {
+                      "period": 10
+                    },
+                    {
+                      "period": 11
+                    },
+                    {
+                      "period": 12
+                    },
+                    {
+                      "period": 13
+                    },
+                    {
+                      "period": 14
+                    },
+                    {
+                      "period": 15
+                    },
+                    {
+                      "period": 16
+                    },
+                    {
+                      "period": 17
+                    },
+                    {
+                      "period": 18
+                    }
+                  ]
+                },
+                {
+                  "period": 4,
+                  "linescores": [
+                    {
+                      "period": 1
+                    },
+                    {
+                      "period": 2
+                    },
+                    {
+                      "period": 3
+                    },
+                    {
+                      "period": 4
+                    },
+                    {
+                      "period": 5
+                    },
+                    {
+                      "period": 6
+                    },
+                    {
+                      "period": 7
+                    },
+                    {
+                      "period": 8
+                    },
+                    {
+                      "period": 9
+                    },
+                    {
+                      "period": 10
+                    },
+                    {
+                      "period": 11
+                    },
+                    {
+                      "period": 12
+                    },
+                    {
+                      "period": 13
+                    },
+                    {
+                      "period": 14
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -85,4 +85,52 @@ final class GolfAdapterTests: XCTestCase {
         XCTAssertTrue(mapped.isFavorite)
         XCTAssertEqual(mapped.sortPriority, 1000)
     }
+
+    // MARK: - "thru N" derived from per-hole linescores (status.thru is null in real data)
+
+    func testHolesThroughCountsCurrentRoundHoles() {
+        let a = adapter()
+        // 4 rounds; round 4 has 13 per-hole entries → thru 13.
+        let player = GolfAdapter.Scoreboard.Competitor(
+            order: 1, score: "-10", athlete: nil, status: nil,
+            linescores: [round(1, holes: 18), round(2, holes: 18), round(3, holes: 18), round(4, holes: 13)])
+        XCTAssertEqual(a.holesThrough(player, round: 4), 13)
+        XCTAssertEqual(a.holesThrough(player, round: nil), 13, "defaults to the latest round")
+        // A completed round → 18 (caller renders "F").
+        let done = GolfAdapter.Scoreboard.Competitor(
+            order: 1, score: "-10", athlete: nil, status: nil, linescores: [round(4, holes: 18)])
+        XCTAssertEqual(a.holesThrough(done, round: 4), 18)
+        // No linescores → nil (caller shows the round number).
+        let empty = GolfAdapter.Scoreboard.Competitor(
+            order: 1, score: "-10", athlete: nil, status: nil, linescores: nil)
+        XCTAssertNil(a.holesThrough(empty, round: 4))
+    }
+
+    func testLiveThruFromRealFixture() throws {
+        // Trimmed real capture of the 2026 Memorial final round: Burns leads −10, thru 13.
+        let url = try XCTUnwrap(Bundle.module.url(
+            forResource: "pga_live_leaderboard", withExtension: "json", subdirectory: "Fixtures"))
+        let board = try JSONDecoder().decode(GolfAdapter.Scoreboard.self, from: Data(contentsOf: url))
+        let mapped = try XCTUnwrap(adapter().map(try XCTUnwrap(board.events?.first)))
+        XCTAssertEqual(mapped.displayString, "Memorial Tournament · Burns −10 thru 13")
+    }
+
+    func testFinishedLeaderShowsF() throws {
+        // Leader has completed all 18 of the current round → "· F".
+        let json = """
+        {"events":[{"id":"g5","name":"U.S. Open","status":{"type":{"state":"in"}},
+          "competitions":[{"status":{"period":4},"competitors":[
+            {"order":1,"score":"-12","athlete":{"displayName":"Scottie Scheffler"},
+             "linescores":[{"period":4,"linescores":[
+               {},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}]}]}
+          ]}]}]}
+        """
+        let mapped = try XCTUnwrap(adapter().map(firstEvent(json)))
+        XCTAssertEqual(mapped.displayString, "U.S. Open · Scheffler −12 · F")
+    }
+
+    /// A round with `holes` blank per-hole entries.
+    private func round(_ period: Int, holes: Int) -> GolfAdapter.Scoreboard.Linescore {
+        .init(period: period, linescores: Array(repeating: .init(), count: holes))
+    }
 }

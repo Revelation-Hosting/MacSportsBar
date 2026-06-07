@@ -39,10 +39,11 @@ struct GolfAdapter: SportAdapter {
         switch state {
         case "in":
             var line = "\(short) · \(leaderLine)"
-            if let thru = leader.status?.thru, thru > 0, thru < 18 {
-                line += " thru \(thru)"            // active round
-            } else if let round = competition.status?.period, round > 0 {
-                line += " · R\(round)"             // between rounds / round complete
+            let round = competition.status?.period
+            if let thru = leader.status?.thru ?? holesThrough(leader, round: round), thru > 0 {
+                line += thru >= 18 ? " · F" : " thru \(thru)"   // holes done this round, or finished
+            } else if let round, round > 0 {
+                line += " · R\(round)"                            // round not yet started
             }
             return SportEvent(id: id, league: league, state: .live,
                               displayString: line, isFavorite: isFav,
@@ -81,6 +82,17 @@ struct GolfAdapter: SportAdapter {
     /// Last token of a player's name, e.g. "J.T. Poston" → "Poston".
     func lastName(_ full: String) -> String {
         full.split(separator: " ").last.map(String.init) ?? full
+    }
+
+    /// Holes completed in the player's current round, counted from the per-hole linescores ESPN
+    /// appends live (its documented `status.thru` is null in the PGA scoreboard, so this is how
+    /// "thru N" is actually known). Returns 18 when the round is complete; nil when the current
+    /// round hasn't started, so the caller falls back to the round number. Pure — a tested seam.
+    func holesThrough(_ competitor: Scoreboard.Competitor, round: Int?) -> Int? {
+        let rounds = competitor.linescores ?? []
+        let current = round.flatMap { r in rounds.first { $0.period == r } } ?? rounds.last
+        let holes = current?.linescores?.count ?? 0
+        return holes > 0 ? holes : nil
     }
 
     /// Render the hyphen-minus ESPN returns as a true minus sign: "-9" → "−9"; "E"/"+2" as-is.
@@ -144,7 +156,19 @@ extension GolfAdapter {
             let score: String?
             let athlete: Athlete?
             let status: CompetitorStatus?
+            /// Per-round scores; each round nests per-hole entries that ESPN appends live as the
+            /// player completes holes — the real source of "holes through" (see `holesThrough`),
+            /// since `status.thru` is documented but never populated in the PGA scoreboard.
+            let linescores: [Linescore]?
         }
+
+        struct Linescore: Decodable {
+            let period: Int?            // round number (1–4)
+            let linescores: [HoleScore]?  // per-hole entries; count = holes completed this round
+        }
+
+        /// A single hole's entry — only its presence matters (we count them), so no fields.
+        struct HoleScore: Decodable {}
 
         struct Athlete: Decodable {
             let displayName: String?
