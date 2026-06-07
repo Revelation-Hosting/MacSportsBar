@@ -110,7 +110,7 @@ struct RacingAdapter: SportAdapter {
 
     /// The live readout derived purely from NASCAR's feed. Pure — the seam the tests exercise.
     struct LiveReadout {
-        let detail: String       // "L27/200 · St1 · #45 Reddick" (or "#45 Reddick won" at the finish)
+        let detail: String       // "L55/200 · St2 10/75 · #45 Reddick" (or "#45 Reddick won" at the finish)
         let flag: RaceFlag?
         let leaderName: String?  // surname, for favorite matching
         let finished: Bool       // 4-Finish or laps_to_go == 0
@@ -140,11 +140,25 @@ struct RacingAdapter: SportAdapter {
         } else {
             var parts: [String] = []
             if let lap = feed.lapNumber, let total = feed.lapsInRace { parts.append("L\(lap)/\(total)") }
-            if let stage = feed.stage?.stageNum { parts.append("St\(stage)") }
+            if let stage = Self.stageLabel(feed.stage, lap: feed.lapNumber) { parts.append(stage) }
             if let leaderTag { parts.append(leaderTag) }
             detail = parts.isEmpty ? "In Progress" : parts.joined(separator: " · ")
         }
         return LiveReadout(detail: detail, flag: flag, leaderName: surname, finished: finished)
+    }
+
+    /// "St2 10/75" — stage number + laps into the current stage. The feed gives the stage's
+    /// `finishAtLap` + `lapsInStage`, so the stage's start lap is `finishAtLap - lapsInStage`
+    /// and laps-into-stage is `lap - start`. Falls back to "St2" when that can't be computed or
+    /// the lap is out of range (e.g. a green-white-checkered finish running past the stage
+    /// length). Pure — a tested seam.
+    nonisolated static func stageLabel(_ stage: NASCARLiveFeed.Stage?, lap: Int?) -> String? {
+        guard let num = stage?.stageNum else { return nil }
+        if let lap, let total = stage?.lapsInStage, let finish = stage?.finishAtLap, total > 0 {
+            let into = lap - (finish - total)
+            if (1...total).contains(into) { return "St\(num) \(into)/\(total)" }
+        }
+        return "St\(num)"
     }
 
     /// Merge the live NASCAR readout onto the day's ESPN race event (keeping its id/date/league).

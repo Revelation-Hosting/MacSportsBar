@@ -41,19 +41,43 @@ final class NASCARLiveFeedTests: XCTestCase {
     }
 
     func testGreenFromRealFixture() throws {
+        // Lap 36 of stage 1 (45 laps) → 36 laps into the stage.
         let live = try XCTUnwrap(RacingAdapter.liveReadout(from: fixture("nascar_live_green")))
-        XCTAssertEqual(live.detail, "L36/200 · St1 · #45 Reddick")
+        XCTAssertEqual(live.detail, "L36/200 · St1 36/45 · #45 Reddick")
         XCTAssertEqual(live.flag, .green)
         XCTAssertEqual(live.leaderName, "Reddick")
         XCTAssertFalse(live.finished)
     }
 
     func testCautionFromRealFixture() throws {
-        // Trimmed real capture from the moment stage 1 ended (lap 47, yellow).
+        // Trimmed real capture just after stage 1 ended: lap 47, stage 2 (start lap 45) → 2/75.
         let live = try XCTUnwrap(RacingAdapter.liveReadout(from: fixture("nascar_live_caution")))
         XCTAssertEqual(live.flag, .caution)
-        XCTAssertEqual(live.detail, "L47/200 · St2 · #45 Reddick")
+        XCTAssertEqual(live.detail, "L47/200 · St2 2/75 · #45 Reddick")
         XCTAssertFalse(live.finished)
+    }
+
+    // MARK: - Stage-lap label
+
+    func testStageLabelComputesLapsIntoStage() {
+        // Stage 2: finishes at lap 120, 75 laps long → starts at lap 45.
+        let s2 = NASCARLiveFeed.Stage(stageNum: 2, finishAtLap: 120, lapsInStage: 75)
+        XCTAssertEqual(RacingAdapter.stageLabel(s2, lap: 55), "St2 10/75")  // the broadcast's "10/75"
+        XCTAssertEqual(RacingAdapter.stageLabel(s2, lap: 46), "St2 1/75")
+        // Stage 1 starts at lap 0 → in-stage lap == race lap.
+        let s1 = NASCARLiveFeed.Stage(stageNum: 1, finishAtLap: 45, lapsInStage: 45)
+        XCTAssertEqual(RacingAdapter.stageLabel(s1, lap: 36), "St1 36/45")
+    }
+
+    func testStageLabelFallsBackWhenOutOfRangeOrIncomplete() {
+        // Green-white-checkered overtime running past the stage length → just the number.
+        let s3 = NASCARLiveFeed.Stage(stageNum: 3, finishAtLap: 200, lapsInStage: 80)
+        XCTAssertEqual(RacingAdapter.stageLabel(s3, lap: 205), "St3")
+        // Missing stage length → just the number.
+        let bare = NASCARLiveFeed.Stage(stageNum: 2, finishAtLap: nil, lapsInStage: nil)
+        XCTAssertEqual(RacingAdapter.stageLabel(bare, lap: 55), "St2")
+        // No stage at all → nil.
+        XCTAssertNil(RacingAdapter.stageLabel(nil, lap: 55))
     }
 
     func testFinishReadsAsWon() throws {
