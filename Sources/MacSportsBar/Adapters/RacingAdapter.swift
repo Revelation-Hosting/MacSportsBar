@@ -3,11 +3,15 @@ import Foundation
 /// Decodes ESPN's NASCAR Cup scoreboard JSON (a *field* shape) into one compact string per
 /// race: short track/race name + the current leader (or winner / scheduled time).
 ///
-/// ⚠️ Degraded by design. Live lap/stage/leader telemetry lives in the per-event detail
-/// endpoint (`sports.core.api.espn.com/.../events/{id}/...`), reachable via each event's
-/// `$ref` — and the exact field paths can only be confirmed against a green-flag Cup race.
-/// Until that's verified, this shows the leader from the scoreboard's running order and
-/// omits lap/stage. Upgrading to `… · L245/400 · St3 · #5 Larson` is a future enhancement.
+/// ⚠️ Degraded by necessity, not just by design. Investigated live during the 2026 Michigan
+/// Cup race: ESPN does NOT hold NASCAR media rights (the 2025+ deal is FOX/Amazon/TNT/NBC),
+/// so its NASCAR data is `gameSource: basic/manual` with `liveAvailable: false` — laggy and
+/// sparse. The race stayed `STATUS_SCHEDULED` for ~35 min past the green flag, the live
+/// detail is a generic "In Progress" (no lap/stage), the `summary` endpoint 502s, and there
+/// is no caution/flag field. So `… · L245/400 · St3` telemetry is simply NOT obtainable from
+/// ESPN for NASCAR. The running order (leader = `order == 1`) is reliable; car number +
+/// manufacturer live in the core API per-competitor `$ref` (`vehicle`). Real lap/stage/flag
+/// data would require a non-ESPN NASCAR timing source — a separate, future effort.
 struct RacingAdapter: SportAdapter {
     let league: LeagueID
     /// Lowercased favorite driver names. Empty = no favorites.
