@@ -38,6 +38,10 @@ struct SportEvent: Identifiable {
     /// Current racing flag (NASCAR live feed), which drives a colored flag glyph in the menu
     /// bar instead of the league glyph. Nil for non-racing events. Defaulted so adapters opt in.
     var flag: RaceFlag? = nil
+    /// A shorter readout used when the full `displayString` won't fit the menu-bar width — it
+    /// drops the least-important leading context (e.g. the race/track name, which the flag glyph
+    /// already implies) rather than hard-clipping the important tail. Nil = no compact form.
+    var menuShort: String? = nil
 
     /// Away/home abbreviations + scores and the live detail, so the menu bar can lay out the
     /// logos and scores individually, e.g. `[logo] NY 39 - 42 SA [logo] · 7:01 Q2`.

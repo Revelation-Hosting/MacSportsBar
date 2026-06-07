@@ -169,6 +169,9 @@ struct RacingAdapter: SportAdapter {
         var event = base
         event.state = .live
         event.displayString = "\(short) · \(live.detail)"
+        // When the bar is tight, drop the track name (the flag glyph already says NASCAR) before
+        // clipping the lap/stage/leader.
+        event.menuShort = live.detail
         event.isFavorite = isFav
         event.sortPriority = isFav ? 1000 : 800
         event.flag = live.flag

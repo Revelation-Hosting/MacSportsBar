@@ -54,4 +54,32 @@ final class BarTextTests: XCTestCase {
                            isFavorite: false, sortPriority: 0)
         XCTAssertEqual(AppModel.barText(for: e), "Memorial · Poston −9 · R2")
     }
+
+    // MARK: - fitMenuBar: drop the race name before clipping the lap/leader
+
+    func testFitUsesFullWhenItFits() {
+        let full = "Michigan · L63/200 · St2 18/75 · #77 Hocevar"  // 44 chars
+        XCTAssertEqual(AppModel.fitMenuBar(full: full, short: "L63/200 · St2 18/75 · #77 Hocevar", limit: 50), full)
+    }
+
+    func testFitDropsRaceNameWhenTooLong() {
+        // At the default 40 cap, drop "Michigan · " rather than clip "#77 Hocevar".
+        let full = "Michigan · L63/200 · St2 18/75 · #77 Hocevar"   // 44
+        let short = "L63/200 · St2 18/75 · #77 Hocevar"             // 33
+        XCTAssertEqual(AppModel.fitMenuBar(full: full, short: short, limit: 40), short)
+    }
+
+    func testFitHardClipsCompactOnlyAsLastResort() {
+        let full = "Michigan · L63/200 · St2 18/75 · #77 Hocevar"
+        let short = "L63/200 · St2 18/75 · #77 Hocevar"             // 33
+        // Even the compact form exceeds a very tight cap → ellipsis on the compact one.
+        XCTAssertEqual(AppModel.fitMenuBar(full: full, short: short, limit: 20),
+                       AppModel.truncate(short, limit: 20))
+    }
+
+    func testFitWithoutCompactBehavesLikePlainTruncate() {
+        let full = "GONZ 72  UCLA 68 · 4:32 2H is a long one here"
+        XCTAssertEqual(AppModel.fitMenuBar(full: full, short: nil, limit: 25),
+                       AppModel.truncate(full, limit: 25))
+    }
 }

@@ -330,7 +330,8 @@ final class AppModel: ObservableObject {
                 chosen = cycleCandidates.first ?? events.first
             }
             if let chosen {
-                menuBarText = truncate(Self.barText(for: chosen))
+                menuBarText = Self.fitMenuBar(full: Self.barText(for: chosen),
+                                              short: chosen.menuShort, limit: settings.maxLength)
                 menuBarSymbol = chosen.league.symbolName
                 currentAwayLogo = chosen.awayLogo
                 currentHomeLogo = chosen.homeLogo
@@ -438,16 +439,23 @@ final class AppModel: ObservableObject {
         return m.detail.isEmpty ? core : "\(core) · \(m.detail)"
     }
 
-    private func truncate(_ string: String) -> String {
-        Self.truncate(string, limit: settings.maxLength)
-    }
-
     /// Hard character cap with an ellipsis. The limit is floored at 8 so the result is never
     /// uselessly short. Pure (no actor state) so the formatting tests can call it directly.
     nonisolated static func truncate(_ string: String, limit: Int) -> String {
         let limit = max(8, limit)
         guard string.count > limit else { return string }
         return String(string.prefix(limit - 1)) + "…"
+    }
+
+    /// Pick the longest readout that fits the menu-bar width: the full string if it fits, else a
+    /// compact fallback that drops the least-important context (the race name), else the compact
+    /// string hard-clipped. So a wide bar shows everything and a tight one keeps the lap/leader
+    /// instead of clipping them. Pure — a tested seam.
+    nonisolated static func fitMenuBar(full: String, short: String?, limit: Int) -> String {
+        let cap = max(8, limit)
+        if full.count <= cap { return full }
+        if let short, short.count <= cap { return short }
+        return truncate(short ?? full, limit: limit)
     }
 
     /// What the menu shows: when "favorites only" is on AND the user actually has favorites
