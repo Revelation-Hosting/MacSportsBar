@@ -24,9 +24,8 @@ final class RacingAdapterTests: XCTestCase {
     }
 
     func testLastNameSkipsSuffix() {
-        let a = adapter()
-        XCTAssertEqual(a.lastName("Ricky Stenhouse Jr."), "Stenhouse")
-        XCTAssertEqual(a.lastName("Kyle Larson"), "Larson")
+        XCTAssertEqual(RacingAdapter.lastName("Ricky Stenhouse Jr."), "Stenhouse")
+        XCTAssertEqual(RacingAdapter.lastName("Kyle Larson"), "Larson")
     }
 
     // MARK: - Mapping

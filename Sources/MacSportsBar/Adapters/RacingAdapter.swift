@@ -16,12 +16,31 @@ struct RacingAdapter: SportAdapter {
     let league: LeagueID
     /// Lowercased favorite driver names. Empty = no favorites.
     let favorites: Set<String>
+    /// NASCAR's own live timing feed — the lap/stage/flag telemetry ESPN lacks. Best-effort:
+    /// when it shows a live Cup race we enrich the ESPN event; otherwise ESPN is the baseline.
+    var nascar = NASCARClient()
 
     func fetch(using client: ESPNClient, dates: String?) async throws -> [SportEvent] {
         let payload = try await client.scoreboard(
             sport: league.sport, league: league.league, dates: dates, as: Scoreboard.self
         )
-        return (payload.events ?? []).map(map)
+        let rawEvents = payload.events ?? []
+        var events = rawEvents.map(map)
+
+        // Live lap/stage/flag come from NASCAR's feed (the current run), so only for "today".
+        guard dates == nil,
+              let feed = try? await nascar.liveFeed(),
+              let live = Self.liveReadout(from: feed) else { return events }
+
+        if let idx = events.indices.first {
+            let short = shortRace(rawEvents[idx].name ?? rawEvents[idx].shortName ?? "Race")
+            events[idx] = mergeLive(into: events[idx], short: short, live: live)
+        } else {
+            // ESPN had no race event for today — synthesize one from the NASCAR feed.
+            let short = feed.trackName.map(Self.shortTrack) ?? feed.runName ?? "Race"
+            events.append(synthesize(short: short, live: live, raceId: feed.raceId))
+        }
+        return events
     }
 
     // MARK: - Mapping
@@ -32,7 +51,7 @@ struct RacingAdapter: SportAdapter {
         let short = shortRace(event.name ?? event.shortName ?? "Race")
         let competitors = event.competitions?.first?.competitors ?? []
         let leader = competitors.first(where: { $0.order == 1 }) ?? competitors.first
-        let leaderName = leader.map { lastName($0.athlete?.displayName ?? $0.athlete?.shortName ?? "") }
+        let leaderName = leader.map { Self.lastName($0.athlete?.displayName ?? $0.athlete?.shortName ?? "") }
         let state = event.status?.type?.state ?? "pre"
         let isFav = isFavorite(leader?.athlete)
         let id = event.id ?? short
@@ -78,12 +97,90 @@ struct RacingAdapter: SportAdapter {
     }
 
     /// Driver surname, skipping a trailing generational suffix: "Ricky Stenhouse Jr." → "Stenhouse".
-    func lastName(_ full: String) -> String {
+    static func lastName(_ full: String) -> String {
         let parts = full.split(separator: " ").map(String.init)
         guard let last = parts.last else { return full }
         let suffixes: Set<String> = ["Jr.", "Sr.", "Jr", "Sr", "II", "III", "IV"]
         if suffixes.contains(last), parts.count >= 2 { return parts[parts.count - 2] }
         return last
+    }
+
+    /// Full track name → short locale: "Michigan Int'l Speedway 2.0" → "Michigan". Used only
+    /// when ESPN has no event to borrow a short name from.
+    static func shortTrack(_ name: String) -> String {
+        name.split(separator: " ").first.map(String.init) ?? name
+    }
+
+    // MARK: - NASCAR live feed (the real lap/stage/flag telemetry)
+
+    /// The live readout derived purely from NASCAR's feed. Pure — the seam the tests exercise.
+    struct LiveReadout {
+        let detail: String       // "L27/200 · St1 · #45 Reddick" (or "#45 Reddick won" at the finish)
+        let flag: RaceFlag?
+        let leaderName: String?  // surname, for favorite matching
+        let finished: Bool       // 4-Finish or laps_to_go == 0
+    }
+
+    /// Build the live readout from the feed, or nil when it isn't a live/finished **Cup race**
+    /// (e.g. flag 9-Not Active between sessions, or a practice/Xfinity run) — then ESPN's
+    /// schedule baseline stands. Pure (no I/O), per the official feed.nascar.com/swagger model.
+    nonisolated static func liveReadout(from feed: NASCARLiveFeed) -> LiveReadout? {
+        guard feed.seriesId == 1, feed.runType == 3 else { return nil }  // Cup races only
+        guard let flag = RaceFlag(flagState: feed.flagState) else { return nil }  // 9-Not Active → ESPN
+
+        let leader = (feed.vehicles ?? []).min {
+            ($0.runningPosition ?? .max) < ($1.runningPosition ?? .max)
+        }
+        let surname = leader?.driver?.fullName.map(lastName).flatMap { $0.isEmpty ? nil : $0 }
+        let leaderTag: String? = surname.map { name in
+            leader?.vehicleNumber.map { "#\($0) \(name)" } ?? name
+        }
+
+        let finished = flag == .checkered || (feed.lapsToGo ?? 1) == 0
+        let detail: String
+        if finished {
+            detail = leaderTag.map { "\($0) won" } ?? "Final"
+        } else if flag == .warmup {
+            detail = leaderTag.map { "Pace · \($0)" } ?? "Pace laps"
+        } else {
+            var parts: [String] = []
+            if let lap = feed.lapNumber, let total = feed.lapsInRace { parts.append("L\(lap)/\(total)") }
+            if let stage = feed.stage?.stageNum { parts.append("St\(stage)") }
+            if let leaderTag { parts.append(leaderTag) }
+            detail = parts.isEmpty ? "In Progress" : parts.joined(separator: " · ")
+        }
+        return LiveReadout(detail: detail, flag: flag, leaderName: surname, finished: finished)
+    }
+
+    /// Merge the live NASCAR readout onto the day's ESPN race event (keeping its id/date/league).
+    private func mergeLive(into base: SportEvent, short: String, live: LiveReadout) -> SportEvent {
+        let isFav = base.isFavorite || favoriteMatches(live.leaderName)
+        var event = base
+        event.state = live.finished ? .final : .live
+        event.displayString = "\(short) · \(live.detail)"
+        event.isFavorite = isFav
+        event.sortPriority = live.finished ? (isFav ? 300 : 100) : (isFav ? 1000 : 800)
+        event.flag = live.flag
+        return event
+    }
+
+    /// Build a standalone event from the NASCAR feed when ESPN listed no race for today.
+    private func synthesize(short: String, live: LiveReadout, raceId: Int?) -> SportEvent {
+        let isFav = favoriteMatches(live.leaderName)
+        return SportEvent(
+            id: raceId.map { "nascar-\($0)" } ?? "nascar-live",
+            league: league,
+            state: live.finished ? .final : .live,
+            displayString: "\(short) · \(live.detail)",
+            isFavorite: isFav,
+            sortPriority: live.finished ? (isFav ? 300 : 100) : (isFav ? 1000 : 800),
+            flag: live.flag)
+    }
+
+    /// Whether a driver surname matches a favorite token (free-form, lowercased substring).
+    private func favoriteMatches(_ name: String?) -> Bool {
+        guard !favorites.isEmpty, let name = name?.lowercased(), !name.isEmpty else { return false }
+        return favorites.contains { name == $0 || name.contains($0) }
     }
 
     private func isFavorite(_ athlete: Scoreboard.Athlete?) -> Bool {

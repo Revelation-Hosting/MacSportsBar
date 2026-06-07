@@ -40,6 +40,8 @@ final class AppModel: ObservableObject {
     private var currentAwayLogo: URL?
     private var currentHomeLogo: URL?
     private var currentMatchup: SportEvent.Matchup?
+    /// Current event's racing flag, when it's a live NASCAR race — drives a colored flag glyph.
+    private var currentFlag: RaceFlag?
     /// The menu bar's *own* light/dark appearance, fed from the status item by the SwiftUI
     /// label (which is hosted in the menu bar, so it knows the real, wallpaper-driven tint —
     /// unlike the app's appearance or the global Dark Mode setting, which both guessed wrong).
@@ -311,6 +313,7 @@ final class AppModel: ObservableObject {
         currentAwayLogo = nil
         currentHomeLogo = nil
         currentMatchup = nil
+        currentFlag = nil
         if enabledLeagues.isEmpty {
             menuBarText = "No sports enabled"
             menuBarSymbol = "sportscourt.fill"
@@ -332,6 +335,7 @@ final class AppModel: ObservableObject {
                 currentAwayLogo = chosen.awayLogo
                 currentHomeLogo = chosen.homeLogo
                 currentMatchup = chosen.matchup
+                currentFlag = chosen.flag
             } else {
                 menuBarSymbol = "sportscourt.fill"
                 menuBarText = (settings.favoritesOnly && settings.hasAnyFavorites)
@@ -377,6 +381,22 @@ final class AppModel: ObservableObject {
                 .environment(\.colorScheme, menuBarColorScheme)
             )
             isTemplate = false  // logos keep their colors
+        } else if let flag = currentFlag {
+            // Live NASCAR: a *colored* flag glyph (green/yellow/red) + the lap/leader text.
+            // Color forces a non-template image, so — like the logo path — tint the text to the
+            // menu bar's own appearance so it stays legible in dark mode; the flag keeps its hue.
+            let (symbol, color) = Self.flagGlyph(flag)
+            label = AnyView(
+                HStack(spacing: 4) {
+                    if let color { Image(systemName: symbol).foregroundStyle(color) }
+                    else { Image(systemName: symbol) }   // checkered/pace → tint with the text
+                    Text(menuBarText)
+                }
+                .font(.system(size: 13))
+                .foregroundStyle(menuBarColorScheme == .dark ? Color.white : Color.black)
+                .environment(\.colorScheme, menuBarColorScheme)
+            )
+            isTemplate = false  // colored flag
         } else {
             label = AnyView(
                 HStack(spacing: 4) {
@@ -392,6 +412,19 @@ final class AppModel: ObservableObject {
         guard let image = renderer.nsImage else { return }
         image.isTemplate = isTemplate
         menuBarImage = image
+    }
+
+    /// SF Symbol + color for a racing flag. A non-nil color paints the flag (green/yellow/red);
+    /// nil means "tint with the menu-bar text color" (checkered finish, and pace laps, which
+    /// have no distinct hue). Checkered uses the checkered-flag symbol; the rest a filled flag.
+    nonisolated static func flagGlyph(_ flag: RaceFlag) -> (symbol: String, color: Color?) {
+        switch flag {
+        case .green:     return ("flag.fill", .green)
+        case .caution:   return ("flag.fill", .yellow)
+        case .red:       return ("flag.fill", .red)
+        case .checkered: return ("flag.checkered", nil)
+        case .warmup:    return ("flag.fill", nil)
+        }
     }
 
     /// The interleaved menu-bar readout for an event: `AWAY a - h HOME · detail`

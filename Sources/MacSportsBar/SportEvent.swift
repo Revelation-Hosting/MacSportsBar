@@ -13,14 +13,16 @@ struct SportEvent: Identifiable {
     let id: String
     /// The league this event belongs to — drives the menu-bar/dropdown icon.
     let league: LeagueID
-    let state: State
+    /// State/string/priority are `var` so a richer source can revise a decoded event in place —
+    /// e.g. NASCAR's live feed upgrading ESPN's stale "In Progress" to live lap/flag telemetry.
+    var state: State
     /// Compact, menu-bar-ready string, e.g. `NY 102  SA 98 · 4:32 Q4`.
-    let displayString: String
+    var displayString: String
     /// Whether the user's favorites are involved (drives ranking). Mutable so the model can
     /// promote events from a followed series (golf/NASCAR) after the adapter has decoded them.
     var isFavorite: Bool
     /// Higher sorts first. Convention: live-favorite > live > pre-favorite > pre > final.
-    let sortPriority: Int
+    var sortPriority: Int
     /// Scheduled start time (the feed's UTC date), for the ±24h favorites window and for
     /// labeling recent/upcoming games. Defaulted so adapters opt in.
     var date: Date? = nil
@@ -33,6 +35,9 @@ struct SportEvent: Identifiable {
     var homeLogo: URL? = nil
     /// Per-team breakdown for the menu-bar team-logos layout (head-to-head live games).
     var matchup: Matchup? = nil
+    /// Current racing flag (NASCAR live feed), which drives a colored flag glyph in the menu
+    /// bar instead of the league glyph. Nil for non-racing events. Defaulted so adapters opt in.
+    var flag: RaceFlag? = nil
 
     /// Away/home abbreviations + scores and the live detail, so the menu bar can lay out the
     /// logos and scores individually, e.g. `[logo] NY 39 - 42 SA [logo] · 7:01 Q2`.
@@ -49,4 +54,27 @@ extension SportEvent {
     /// Convenience flags over `state`.
     var isLive: Bool { if case .live = state { return true } else { return false } }
     var isFinal: Bool { if case .final = state { return true } else { return false } }
+}
+
+/// A racing flag state, mapped from the NASCAR live feed's `flag_state` integer per the
+/// official spec (https://feed.nascar.com/swagger): 1-Green, 2-Yellow, 3-Red, 4-Finish,
+/// 6-Stop, 8-Warm Up, 9-Not Active. Drives the menu-bar flag glyph + color.
+enum RaceFlag {
+    case green       // 1 — racing under green
+    case caution     // 2 — yellow / caution
+    case red         // 3 Red, 6 Stop — session stopped on track
+    case checkered   // 4 — Finish
+    case warmup      // 8 — pace / formation laps before green
+
+    /// Map the feed's `flag_state`; returns nil for 9-Not Active or anything unknown (no flag).
+    init?(flagState: Int?) {
+        switch flagState {
+        case 1: self = .green
+        case 2: self = .caution
+        case 3, 6: self = .red
+        case 4: self = .checkered
+        case 8: self = .warmup
+        default: return nil   // 9-Not Active / absent / unknown
+        }
+    }
 }
