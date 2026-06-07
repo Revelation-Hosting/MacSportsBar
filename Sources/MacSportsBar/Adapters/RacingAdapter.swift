@@ -27,17 +27,16 @@ struct RacingAdapter: SportAdapter {
         let rawEvents = payload.events ?? []
         var events = rawEvents.map(map)
 
-        // Enrich with NASCAR's live feed ONLY when it shows an actively-running Cup race AND
-        // ESPN lists a race today. Both guards matter: the live feed sits on the *last* race
-        // between events, so requiring a non-finished flag (`liveReadout` already drops
-        // 9-Not Active) plus a same-day ESPN event prevents surfacing a stale result on a
-        // non-race day or pinning last week's finish onto next week's scheduled race. Final
-        // results and the schedule stay with ESPN.
+        // Enrich the day's ESPN race with NASCAR's live feed (the lap/stage/flag telemetry +
+        // the actual winner, since ESPN lags badly — it still says "In Progress" minutes after
+        // the checkered). Staleness guard: an *active* race is always today's, but the feed sits
+        // on the *last* race between events, so only trust a *finished* feed when ESPN isn't
+        // still showing today's race as "pre" (a future race with the feed on last week's finish).
         guard dates == nil,
               let feed = try? await nascar.liveFeed(),
               let live = Self.liveReadout(from: feed),
-              !live.finished,
               let idx = events.indices.first else { return events }
+        if live.finished, case .pre = events[idx].state { return events }
 
         let short = shortRace(rawEvents[idx].name ?? rawEvents[idx].shortName ?? "Race")
         events[idx] = mergeLive(into: events[idx], short: short, live: live)
@@ -121,7 +120,12 @@ struct RacingAdapter: SportAdapter {
     /// schedule baseline stands. Pure (no I/O), per the official feed.nascar.com/swagger model.
     nonisolated static func liveReadout(from feed: NASCARLiveFeed) -> LiveReadout? {
         guard feed.seriesId == 1, feed.runType == 3 else { return nil }  // Cup races only
-        guard let flag = RaceFlag(flagState: feed.flagState) else { return nil }  // 9-Not Active → ESPN
+        let rawFlag = RaceFlag(flagState: feed.flagState)
+        // A completed race flickers flag 4 (Finish) for seconds, then sits on 9 (Not Active)
+        // with laps_to_go 0 — treat either as finished. A 9 that *isn't* a finish (between
+        // sessions, laps_to_go > 0) → nil, so ESPN shows the schedule.
+        let finished = rawFlag == .checkered || (feed.lapsToGo ?? -1) == 0
+        guard rawFlag != nil || finished else { return nil }
 
         let leader = (feed.vehicles ?? []).min {
             ($0.runningPosition ?? .max) < ($1.runningPosition ?? .max)
@@ -131,18 +135,21 @@ struct RacingAdapter: SportAdapter {
             leader?.vehicleNumber.map { "#\($0) \(name)" } ?? name
         }
 
-        let finished = flag == .checkered || (feed.lapsToGo ?? 1) == 0
         let detail: String
+        let flag: RaceFlag?
         if finished {
             detail = leaderTag.map { "\($0) won" } ?? "Final"
-        } else if flag == .warmup {
+            flag = .checkered                                // checkered glyph at the finish
+        } else if rawFlag == .warmup {
             detail = leaderTag.map { "Pace · \($0)" } ?? "Pace laps"
+            flag = rawFlag
         } else {
             var parts: [String] = []
             if let lap = feed.lapNumber, let total = feed.lapsInRace { parts.append("L\(lap)/\(total)") }
             if let stage = Self.stageLabel(feed.stage, lap: feed.lapNumber) { parts.append(stage) }
             if let leaderTag { parts.append(leaderTag) }
             detail = parts.isEmpty ? "In Progress" : parts.joined(separator: " · ")
+            flag = rawFlag
         }
         return LiveReadout(detail: detail, flag: flag, leaderName: surname, finished: finished)
     }
@@ -161,19 +168,18 @@ struct RacingAdapter: SportAdapter {
         return "St\(num)"
     }
 
-    /// Merge the live NASCAR readout onto the day's ESPN race event (keeping its id/date/league).
-    /// Only called for an actively-running race (the caller guards `!finished`), so it's always
-    /// a live event.
+    /// Merge the live NASCAR readout onto the day's ESPN race event (keeping its id/date/league),
+    /// as a live race or — at the checkered — a final with the winner.
     private func mergeLive(into base: SportEvent, short: String, live: LiveReadout) -> SportEvent {
         let isFav = base.isFavorite || favoriteMatches(live.leaderName)
         var event = base
-        event.state = .live
+        event.state = live.finished ? .final : .live
         event.displayString = "\(short) · \(live.detail)"
         // When the bar is tight, drop the track name (the flag glyph already says NASCAR) before
         // clipping the lap/stage/leader.
         event.menuShort = live.detail
         event.isFavorite = isFav
-        event.sortPriority = isFav ? 1000 : 800
+        event.sortPriority = live.finished ? (isFav ? 300 : 100) : (isFav ? 1000 : 800)
         event.flag = live.flag
         return event
     }

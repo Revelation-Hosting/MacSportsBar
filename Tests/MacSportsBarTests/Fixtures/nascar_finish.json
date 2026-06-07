@@ -1,0 +1,56 @@
+{
+  "lap_number": 200,
+  "flag_state": 9,
+  "race_id": 5612,
+  "laps_in_race": 200,
+  "laps_to_go": 0,
+  "run_name": "FireKeepers Casino 400",
+  "run_type": 3,
+  "series_id": 1,
+  "track_name": "Michigan Int'l Speedway",
+  "number_of_lead_changes": 23,
+  "number_of_caution_segments": 11,
+  "stage": {
+    "stage_num": 3,
+    "finish_at_lap": 200,
+    "laps_in_stage": 80
+  },
+  "vehicles": [
+    {
+      "running_position": 1,
+      "vehicle_number": "11",
+      "vehicle_manufacturer": "Tyt",
+      "sponsor_name": "National Debt Relief",
+      "status": 1,
+      "driver": {
+        "full_name": "Denny Hamlin",
+        "first_name": "Denny",
+        "last_name": "Hamlin"
+      }
+    },
+    {
+      "running_position": 2,
+      "vehicle_number": "43",
+      "vehicle_manufacturer": "Tyt",
+      "sponsor_name": "Dollar Tree",
+      "status": 1,
+      "driver": {
+        "full_name": "Erik Jones",
+        "first_name": "Erik",
+        "last_name": "Jones"
+      }
+    },
+    {
+      "running_position": 3,
+      "vehicle_number": "23",
+      "vehicle_manufacturer": "Tyt",
+      "sponsor_name": "Columbia",
+      "status": 1,
+      "driver": {
+        "full_name": "Bubba Wallace",
+        "first_name": "Bubba",
+        "last_name": "Wallace"
+      }
+    }
+  ]
+}

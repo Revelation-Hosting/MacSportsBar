@@ -65,6 +65,16 @@ final class NASCARLiveFeedTests: XCTestCase {
         XCTAssertFalse(live.finished, "a red flag stops the race but it isn't over")
     }
 
+    func testFinishFromRealFixture() throws {
+        // Trimmed real capture just after the checkered: the feed already rolled to flag 9
+        // (Not Active) with laps_to_go 0, so we detect the finish from laps_to_go, show the
+        // winner, and still flag it checkered. (Hamlin won the 2026 Michigan race.)
+        let live = try XCTUnwrap(RacingAdapter.liveReadout(from: fixture("nascar_finish")))
+        XCTAssertTrue(live.finished, "laps_to_go 0 = race over, even though the flag rolled to Not Active")
+        XCTAssertEqual(live.flag, .checkered)
+        XCTAssertEqual(live.detail, "#11 Hamlin won")
+    }
+
     // MARK: - Stage-lap label
 
     func testStageLabelComputesLapsIntoStage() {
