@@ -78,4 +78,28 @@ final class NotificationManagerTests: XCTestCase {
                                          to: Snapshot(period: nil, isFinal: true, isLive: false)),
             .final)
     }
+
+    // MARK: - Per-kind preferences (each notification type toggles independently)
+
+    func testShouldNotifyRespectsEachToggle() {
+        // Default-ish: start + final on, period (the noisy one) off.
+        let prefs = NotificationManager.Preferences(start: true, period: false, final: true)
+        XCTAssertTrue(NotificationManager.shouldNotify(.started, prefs: prefs))
+        XCTAssertFalse(NotificationManager.shouldNotify(.periodAdvanced, prefs: prefs))
+        XCTAssertTrue(NotificationManager.shouldNotify(.final, prefs: prefs))
+        XCTAssertFalse(NotificationManager.shouldNotify(.none, prefs: prefs))
+    }
+
+    func testShouldNotifyAllOffSilencesEverything() {
+        let off = NotificationManager.Preferences(start: false, period: false, final: false)
+        for b in [NotificationManager.Boundary.started, .periodAdvanced, .final, .none] {
+            XCTAssertFalse(NotificationManager.shouldNotify(b, prefs: off))
+        }
+    }
+
+    func testShouldNotifyPeriodOnlyWhenEnabled() {
+        let periodOn = NotificationManager.Preferences(start: false, period: true, final: false)
+        XCTAssertTrue(NotificationManager.shouldNotify(.periodAdvanced, prefs: periodOn))
+        XCTAssertFalse(NotificationManager.shouldNotify(.started, prefs: periodOn))
+    }
 }

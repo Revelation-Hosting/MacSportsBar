@@ -152,7 +152,9 @@ final class AppModel: ObservableObject {
         }
         let marked = Self.applyFollowedLeagues(collected, followed: settings.followedLeagues)
         lastRanked = marked.sorted { $0.sortPriority > $1.sortPriority }
-        notifications.process(events: lastRanked, enabled: settings.notifyFavorites)
+        notifications.process(
+            events: lastRanked, enabled: settings.notifyFavorites,
+            prefs: .init(start: settings.notifyStart, period: settings.notifyPeriod, final: settings.notifyFinal))
         await updateFavoritesWindow()
         applyDisplay()
     }

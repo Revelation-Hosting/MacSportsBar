@@ -25,6 +25,23 @@ final class NotificationManager {
         case final
     }
 
+    /// Which boundary kinds the user wants notified — each independently toggleable.
+    struct Preferences: Equatable {
+        var start: Bool
+        var period: Bool
+        var final: Bool
+    }
+
+    /// Whether a boundary should post, given the user's per-kind preferences. Pure — a tested seam.
+    nonisolated static func shouldNotify(_ boundary: Boundary, prefs: Preferences) -> Bool {
+        switch boundary {
+        case .started:        return prefs.start
+        case .periodAdvanced: return prefs.period
+        case .final:          return prefs.final
+        case .none:           return false
+        }
+    }
+
     private var lastSnapshots: [String: Snapshot] = [:]
     private var requestedAuth = false
 
@@ -48,8 +65,9 @@ final class NotificationManager {
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in }
     }
 
-    /// Diff the favorite events against the previous poll and post boundary notifications.
-    func process(events: [SportEvent], enabled: Bool) {
+    /// Diff the favorite events against the previous poll and post boundary notifications the
+    /// user has opted into. `enabled` is the master switch; `prefs` chooses which kinds fire.
+    func process(events: [SportEvent], enabled: Bool, prefs: Preferences) {
         guard isAvailable, enabled else {
             // Drop snapshots so re-enabling later doesn't replay a stale transition.
             lastSnapshots.removeAll()
@@ -57,15 +75,16 @@ final class NotificationManager {
         }
         for event in events where event.isFavorite {
             let current = Snapshot(period: event.period, isFinal: event.isFinal, isLive: event.isLive)
-            switch Self.boundary(from: lastSnapshots[event.id], to: current) {
-            case .final:
-                post(title: "Final · \(event.league.displayName)", body: event.displayString)
-            case .started:
-                post(title: "Starting · \(event.league.displayName)", body: event.displayString)
-            case .periodAdvanced:
-                post(title: event.league.displayName, body: event.displayString)
-            case .none:
-                break
+            let boundary = Self.boundary(from: lastSnapshots[event.id], to: current)
+            // Always advance the snapshot (so a muted kind doesn't desync the diff); only post
+            // the kinds the user enabled.
+            if Self.shouldNotify(boundary, prefs: prefs) {
+                switch boundary {
+                case .final:          post(title: "Final · \(event.league.displayName)", body: event.displayString)
+                case .started:        post(title: "Starting · \(event.league.displayName)", body: event.displayString)
+                case .periodAdvanced: post(title: event.league.displayName, body: event.displayString)
+                case .none:           break
+                }
             }
             lastSnapshots[event.id] = current
         }

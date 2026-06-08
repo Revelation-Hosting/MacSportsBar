@@ -24,8 +24,15 @@ final class Settings: ObservableObject {
     @Published var pinnedEventID: String?
     /// When on (and favorites are set), the ticker shows only favorite teams' games.
     @Published var favoritesOnly: Bool
-    /// Notify on boundary events (new period/inning/half + final) for favorite teams.
+    /// Master switch for favorite-team notifications — also the permission anchor. The three
+    /// flags below choose which boundaries actually fire (all gated by this).
     @Published var notifyFavorites: Bool
+    /// Notify when a favorite's game starts (pre → live).
+    @Published var notifyStart: Bool
+    /// Notify at the end of each period/inning/half. Off by default — it's the noisy one.
+    @Published var notifyPeriod: Bool
+    /// Notify when a favorite's game goes final.
+    @Published var notifyFinal: Bool
     /// Per-league favorite team abbreviations (lowercased), chosen in the team picker.
     /// Exact matches — no fuzzy substring matching like the free-form `favorites` field.
     @Published var teamFavorites: [String: Set<String>]
@@ -50,6 +57,9 @@ final class Settings: ObservableObject {
         static let pinnedEventID = "pinnedEventID"
         static let favoritesOnly = "favoritesOnly"
         static let notifyFavorites = "notifyFavorites"
+        static let notifyStart = "notifyStart"
+        static let notifyPeriod = "notifyPeriod"
+        static let notifyFinal = "notifyFinal"
         static let teamFavorites = "teamFavorites"
         static let followedLeagues = "followedLeagues"
         static let showTeamLogos = "showTeamLogos"
@@ -79,6 +89,9 @@ final class Settings: ObservableObject {
         pinnedEventID = defaults.string(forKey: Key.pinnedEventID)
         favoritesOnly = defaults.object(forKey: Key.favoritesOnly) as? Bool ?? false
         notifyFavorites = defaults.object(forKey: Key.notifyFavorites) as? Bool ?? false
+        notifyStart = defaults.object(forKey: Key.notifyStart) as? Bool ?? true
+        notifyPeriod = defaults.object(forKey: Key.notifyPeriod) as? Bool ?? false  // noisy → off by default
+        notifyFinal = defaults.object(forKey: Key.notifyFinal) as? Bool ?? true
         if let data = defaults.data(forKey: Key.teamFavorites),
            let decoded = try? JSONDecoder().decode([String: [String]].self, from: data) {
             teamFavorites = decoded.mapValues { Set($0) }
@@ -100,6 +113,9 @@ final class Settings: ObservableObject {
         }
         persist($favoritesOnly) { [weak self] in self?.defaults.set($0, forKey: Key.favoritesOnly) }
         persist($notifyFavorites) { [weak self] in self?.defaults.set($0, forKey: Key.notifyFavorites) }
+        persist($notifyStart) { [weak self] in self?.defaults.set($0, forKey: Key.notifyStart) }
+        persist($notifyPeriod) { [weak self] in self?.defaults.set($0, forKey: Key.notifyPeriod) }
+        persist($notifyFinal) { [weak self] in self?.defaults.set($0, forKey: Key.notifyFinal) }
         persist($teamFavorites) { [weak self] favorites in
             let encodable = favorites.mapValues { Array($0) }
             self?.defaults.set(try? JSONEncoder().encode(encodable), forKey: Key.teamFavorites)

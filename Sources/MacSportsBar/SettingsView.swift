@@ -78,7 +78,14 @@ struct SettingsView: View {
 
             Section("Notifications") {
                 Toggle("Notify me about my favorites", isOn: $settings.notifyFavorites)
-                Text("Sends a notification when a favorite team's game starts, at the end of each period/inning/half, and when it goes final — not on every score. Requires the installed app (see scripts/build-app.sh), not `swift run`.")
+                Group {
+                    Toggle("When a game starts", isOn: $settings.notifyStart)
+                    Toggle("At the end of each period / inning / half", isOn: $settings.notifyPeriod)
+                    Toggle("When a game goes final", isOn: $settings.notifyFinal)
+                }
+                .padding(.leading)
+                .disabled(!settings.notifyFavorites)
+                Text("Favorites only — never on every score. Period/inning alerts are off by default (a notification per inning is a lot). Requires the installed app (see scripts/build-app.sh), not `swift run`.")
                     .font(.caption).foregroundStyle(.secondary)
             }
         }
