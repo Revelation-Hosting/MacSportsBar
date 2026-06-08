@@ -2,8 +2,8 @@ import Foundation
 import UserNotifications
 
 /// Posts macOS notifications for favorite teams when a game crosses a *meaningful boundary* —
-/// a new period/inning/half, or the game going final. Deliberately not per-score-change, which
-/// would be spammy for something like basketball.
+/// it starts, a new period/inning/half begins, or it goes final. Deliberately not
+/// per-score-change, which would be spammy for something like basketball.
 ///
 /// Notifications require a bundled app (a bundle identifier + the user's permission), so this
 /// is a no-op when run via `swift run`; install via `scripts/build-app.sh`.
@@ -13,11 +13,14 @@ final class NotificationManager {
     struct Snapshot: Equatable {
         var period: Int?
         var isFinal: Bool
+        /// Whether the game is in progress, so a pre→live transition can fire a "started" alert.
+        var isLive: Bool = false
     }
 
     /// What changed since the previous poll.
     enum Boundary: Equatable {
         case none
+        case started
         case periodAdvanced
         case final
     }
@@ -34,6 +37,7 @@ final class NotificationManager {
     nonisolated static func boundary(from previous: Snapshot?, to current: Snapshot) -> Boundary {
         guard let previous else { return .none }
         if !previous.isFinal && current.isFinal { return .final }
+        if !previous.isLive && current.isLive { return .started }    // pre → live (tip-off / first pitch)
         if let prev = previous.period, let cur = current.period, cur > prev { return .periodAdvanced }
         return .none
     }
@@ -52,10 +56,12 @@ final class NotificationManager {
             return
         }
         for event in events where event.isFavorite {
-            let current = Snapshot(period: event.period, isFinal: event.isFinal)
+            let current = Snapshot(period: event.period, isFinal: event.isFinal, isLive: event.isLive)
             switch Self.boundary(from: lastSnapshots[event.id], to: current) {
             case .final:
                 post(title: "Final · \(event.league.displayName)", body: event.displayString)
+            case .started:
+                post(title: "Starting · \(event.league.displayName)", body: event.displayString)
             case .periodAdvanced:
                 post(title: event.league.displayName, body: event.displayString)
             case .none:

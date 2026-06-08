@@ -52,8 +52,8 @@ Coca-Cola 600 · L245/400 · St3 · #5 Larson   ← live NASCAR Cup
   the top event, cycling through multiples on a timer.
 - A click-through **Settings** window lets you pick favorite teams/drivers, enable/disable
   sports, and tune refresh cadence and display strategy.
-- **Optional favorites notifications** — at the end of each period/inning/half and when a
-  favorite team's game goes final (never on every score). Requires the installed `.app`.
+- **Optional favorites notifications** — when a favorite team's game starts, at the end of each
+  period/inning/half, and when it goes final (never on every score). Requires the installed `.app`.
 - A **±24h favorites view** — your teams' recent finals, live games, and upcoming matchups,
   surfaced both in the dropdown digest and the ticker.
 - **Keyless and secret-free** — it uses public, no-auth data endpoints, so there's nothing

@@ -51,4 +51,31 @@ final class NotificationManagerTests: XCTestCase {
                                          to: Snapshot(period: nil, isFinal: false)),
             .none)
     }
+
+    func testGameStartingDetected() {
+        // pre (not live) → live = the game started.
+        XCTAssertEqual(
+            NotificationManager.boundary(from: Snapshot(period: nil, isFinal: false, isLive: false),
+                                         to: Snapshot(period: 1, isFinal: false, isLive: true)),
+            .started)
+    }
+
+    func testAlreadyLiveDoesNotRepeatStart() {
+        // Launching mid-game (first sighting) is quiet, and a live game staying live doesn't restart.
+        XCTAssertEqual(
+            NotificationManager.boundary(from: nil, to: Snapshot(period: 2, isFinal: false, isLive: true)),
+            .none)
+        XCTAssertEqual(
+            NotificationManager.boundary(from: Snapshot(period: 1, isFinal: false, isLive: true),
+                                         to: Snapshot(period: 1, isFinal: false, isLive: true)),
+            .none)
+    }
+
+    func testFinalTakesPrecedenceOverStart() {
+        // A pre game seen as final next poll (postponed→over edge) is a final, not a start.
+        XCTAssertEqual(
+            NotificationManager.boundary(from: Snapshot(period: nil, isFinal: false, isLive: false),
+                                         to: Snapshot(period: nil, isFinal: true, isLive: false)),
+            .final)
+    }
 }

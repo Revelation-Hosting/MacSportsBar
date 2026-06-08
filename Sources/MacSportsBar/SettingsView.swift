@@ -78,7 +78,7 @@ struct SettingsView: View {
 
             Section("Notifications") {
                 Toggle("Notify me about my favorites", isOn: $settings.notifyFavorites)
-                Text("Sends a notification at the end of each period/inning/half and when a favorite team's game goes final — not on every score. Requires the installed app (see scripts/build-app.sh), not `swift run`.")
+                Text("Sends a notification when a favorite team's game starts, at the end of each period/inning/half, and when it goes final — not on every score. Requires the installed app (see scripts/build-app.sh), not `swift run`.")
                     .font(.caption).foregroundStyle(.secondary)
             }
         }
