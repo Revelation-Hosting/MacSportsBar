@@ -278,8 +278,10 @@ final class AppModel: ObservableObject {
         settings.pinnedEventID = (settings.pinnedEventID == id) ? nil : id
     }
 
-    /// Adaptive cadence (spec §7): tight while a favorite is live, moderate for any live
-    /// game, slow when nothing is live. `refreshSeconds` is the user's live-cadence knob.
+    /// Adaptive cadence (spec §7): tight while a favorite is live, moderate for any live game,
+    /// slow when nothing is live — but ramping up as a favorite's *scheduled* start approaches,
+    /// so we catch tip-off (and fire the "Starting" alert) promptly instead of on the slow idle
+    /// tick. `refreshSeconds` is the user's live-cadence knob.
     private func pollInterval(for events: [SportEvent]) -> Duration {
         if events.contains(where: { $0.isLive && $0.isFavorite }) {
             return .seconds(max(5, min(10, settings.refreshSeconds)))
@@ -287,7 +289,35 @@ final class AppModel: ObservableObject {
         if events.contains(where: \.isLive) {
             return .seconds(max(5, settings.refreshSeconds))
         }
+        if let untilStart = Self.nextFavoriteStart(in: events, now: Date()) {
+            return Self.startupRampInterval(secondsUntilStart: untilStart)
+        }
         return idleInterval
+    }
+
+    /// Seconds until the soonest favorite game's scheduled start (negative if already due),
+    /// ignoring games more than 30 min overdue but still "pre" (likely postponed or a stale
+    /// feed — don't poll-storm forever). Nil if no favorite is upcoming. Pure — a tested seam.
+    nonisolated static func nextFavoriteStart(in events: [SportEvent], now: Date) -> TimeInterval? {
+        events
+            .compactMap { event -> TimeInterval? in
+                guard event.isFavorite, case .pre = event.state, let date = event.date
+                else { return nil }
+                return date.timeIntervalSince(now)
+            }
+            .filter { $0 > -1800 }
+            .min()
+    }
+
+    /// Poll cadence as a favorite's start nears: tight when it's imminent or just-overdue so we
+    /// catch the tip-off, a check-a-minute within ~15 min, idle when it's further out. Pure — a
+    /// tested seam.
+    nonisolated static func startupRampInterval(secondsUntilStart: TimeInterval) -> Duration {
+        switch secondsUntilStart {
+        case ..<120:  return .seconds(20)    // imminent or just-overdue → catch it within ~20s
+        case ..<900:  return .seconds(60)    // within 15 min → check each minute
+        default:      return .seconds(300)   // further out → idle
+        }
     }
 
     // MARK: - Cycling display

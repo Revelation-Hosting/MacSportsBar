@@ -181,8 +181,10 @@ A small, isolated-adapter architecture so a breaking upstream change is a one-fi
   bonus — NASCAR publishes a [Swagger spec](https://feed.nascar.com/swagger), so its field
   names and enums are documented rather than reverse-engineered.
 
-Polling is adaptive and deliberately gentle: slow (every 5–10 min) when nothing is live,
-fast (10–30s) when a relevant event is in progress, with finals cached on a long TTL.
+Polling is adaptive and deliberately gentle: slow (every 5 min) when nothing is live, fast
+(5–10s) when a relevant event is in progress — and it **ramps up as a favorite's scheduled
+start nears** (every minute within 15 min, every 20s in the final stretch) so tip-off is caught
+promptly rather than on the slow idle tick.
 
 Full architecture, per-sport display formats, and polling policy are documented in
 [menubar-sports-app-spec.md](menubar-sports-app-spec.md).
