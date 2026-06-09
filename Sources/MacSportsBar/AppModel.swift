@@ -5,16 +5,23 @@ import AppKit
 /// Owns the polling loop, the ranked event list, and the cycling/truncation logic that
 /// decides the single string shown in the menu bar. Reads everything user-tunable from the
 /// shared `Settings` and reacts live as the user changes them.
+/// The composited menu-bar image, in its *own* observable so the `MenuBarExtra` label observes
+/// only this — not the whole `AppModel`. `AppModel.events`/`favoritesDigest` are reassigned every
+/// poll; if the label observed them it would be re-pushed to the status item every few seconds
+/// (and macOS drops the item on that churn). This updates only when the image truly changes.
+@MainActor
+final class MenuBarPresenter: ObservableObject {
+    @Published var image: NSImage?
+}
+
 @MainActor
 final class AppModel: ObservableObject {
-    /// The single string rendered in the menu bar.
-    @Published var menuBarText: String = "Loading…"
-    /// SF Symbol shown beside the menu-bar text — the current event's league glyph.
-    @Published var menuBarSymbol: String = "sportscourt.fill"
-    /// Pre-rendered menu-bar label (glyph + score, with the matchup's color team logos
-    /// interleaved when enabled) as one composited image. The status item shows a label as
-    /// *either* text or an image — never both — so we composite them.
-    @Published var menuBarImage: NSImage?
+    /// The composited menu-bar image lives here (not on `AppModel`) so the label doesn't re-render
+    /// on unrelated poll churn — see `MenuBarPresenter`.
+    let menuBar = MenuBarPresenter()
+    /// Internal render inputs (not observed by any view; the label reads `menuBar.image`).
+    private(set) var menuBarText: String = "Loading…"
+    private(set) var menuBarSymbol: String = "sportscourt.fill"
     /// Full ranked list, surfaced in the dropdown menu.
     @Published var events: [SportEvent] = []
     /// Favorite teams' games across ±24h (recent finals, live, upcoming) — the dropdown digest.
@@ -456,7 +463,7 @@ final class AppModel: ObservableObject {
         // bitmap, which would blank the menu-bar item. Keep the last good one and retry next tick.
         guard let image = renderer.nsImage, image.size.width > 1, image.size.height > 1 else { return }
         image.isTemplate = false  // uniform flat look across every sport
-        menuBarImage = image
+        menuBar.image = image
         lastRenderSignature = signature
     }
 

@@ -29,7 +29,7 @@ struct MacSportsBarApp: App {
         MenuBarExtra {
             MenuContent(model: model)
         } label: {
-            MenuBarLabel(model: model)
+            MenuBarLabel(presenter: model.menuBar, model: model)
         }
         .menuBarExtraStyle(.menu)
 
@@ -40,21 +40,25 @@ struct MacSportsBarApp: App {
     }
 }
 
-/// The menu-bar item's label. It lives *in* the menu bar, so its `colorScheme` environment
-/// reflects the menu bar's real (wallpaper-driven) light/dark tint — the source of truth the
-/// app's own appearance and the global Dark Mode setting both failed to give us. We forward it
-/// to the model so the composited color-logo image tints its glyph + text to match. SwiftUI
-/// re-runs this view when the tint flips, so the bar re-colors itself with no manual observer.
+/// The menu-bar item's label. It observes ONLY the `MenuBarPresenter` (just the composited
+/// image), never the full `AppModel` — so the poll loop reassigning `events`/`favoritesDigest`
+/// every few seconds doesn't re-push the label to the status item and make macOS drop it.
+///
+/// It also lives *in* the menu bar, so its `colorScheme` environment reflects the real
+/// (wallpaper-driven) light/dark tint — the source the app's own appearance and the global Dark
+/// Mode setting both missed. We forward it to the model (an unobserved reference) so the
+/// composited color image tints to match. SwiftUI re-runs this view when the tint flips.
 private struct MenuBarLabel: View {
-    @ObservedObject var model: AppModel
+    @ObservedObject var presenter: MenuBarPresenter
+    let model: AppModel
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         Group {
-            if let image = model.menuBarImage {
+            if let image = presenter.image {
                 Image(nsImage: image)
             } else {
-                Text(model.menuBarText)
+                Image(systemName: "sportscourt.fill")   // brief placeholder before the first render
             }
         }
         .onAppear { model.menuBarColorScheme = colorScheme }
