@@ -42,6 +42,10 @@ final class AppModel: ObservableObject {
     private var currentMatchup: SportEvent.Matchup?
     /// Current event's racing flag, when it's a live NASCAR race — drives a colored flag glyph.
     private var currentFlag: RaceFlag?
+    /// Signature of the last *successfully* rendered menu-bar image. Polls (every 5–10s) and the
+    /// cycle tick re-render even when the readout is identical; re-poking the `MenuBarExtra` label
+    /// that often makes it flicker/blank, so we skip when nothing visible changed.
+    private var lastRenderSignature: String?
     /// The menu bar's *own* light/dark appearance, fed from the status item by the SwiftUI
     /// label (which is hosted in the menu bar, so it knows the real, wallpaper-driven tint —
     /// unlike the app's appearance or the global Dark Mode setting, which both guessed wrong).
@@ -392,6 +396,18 @@ final class AppModel: ObservableObject {
         let awayImage = settings.showTeamLogos ? logos.image(for: currentAwayLogo) : nil
         let homeImage = settings.showTeamLogos ? logos.image(for: currentHomeLogo) : nil
 
+        // Skip when the visible output would be identical to the last render — avoids re-poking
+        // the menu bar (and the flicker that causes) on every poll/cycle tick. Captures every
+        // input that affects the pixels: text, glyph, flag, tint, and the logo/matchup state.
+        let signature = [
+            menuBarText, menuBarSymbol, "\(menuBarColorScheme)",
+            currentFlag.map { "\($0)" } ?? "-",
+            awayImage != nil ? (currentAwayLogo?.absoluteString ?? "a") : "-",
+            homeImage != nil ? (currentHomeLogo?.absoluteString ?? "h") : "-",
+            currentMatchup.map { "\($0.away) \($0.awayScore) \($0.home) \($0.homeScore) \($0.detail)" } ?? "-",
+        ].joined(separator: "|")
+        if signature == lastRenderSignature { return }
+
         let content: AnyView
         if let awayImage, let homeImage, let matchup = currentMatchup {
             // [league glyph] [away logo] AWAY a - h HOME [home logo] · detail
@@ -436,9 +452,12 @@ final class AppModel: ObservableObject {
 
         let renderer = ImageRenderer(content: label)
         renderer.scale = 2  // render @2x for crisp text on Retina
-        guard let image = renderer.nsImage else { return }
+        // Never assign an empty image — ImageRenderer occasionally returns nil or a zero-size
+        // bitmap, which would blank the menu-bar item. Keep the last good one and retry next tick.
+        guard let image = renderer.nsImage, image.size.width > 1, image.size.height > 1 else { return }
         image.isTemplate = false  // uniform flat look across every sport
         menuBarImage = image
+        lastRenderSignature = signature
     }
 
     /// SF Symbol + color for a racing flag. A non-nil color paints the flag (green/yellow/red);
