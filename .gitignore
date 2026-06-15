@@ -56,3 +56,8 @@ Carthage/Build/
 *.swp
 .idea/
 .vscode/
+
+# Local AI-assistant context (operational notes for Claude Code — not contributor docs;
+# the project's architecture lives in README.md + menubar-sports-app-spec.md). Kept local.
+CLAUDE.md
+.claude/
