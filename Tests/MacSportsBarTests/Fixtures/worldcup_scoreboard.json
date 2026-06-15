@@ -1,0 +1,122 @@
+{
+  "events": [
+    {
+      "id": "760428",
+      "date": "2026-06-15T16:00Z",
+      "name": "Cape Verde at Spain",
+      "shortName": "CPV @ ESP",
+      "status": {
+        "clock": 5400.0,
+        "displayClock": "90'+5'",
+        "period": 2,
+        "type": {
+          "id": "28",
+          "name": "STATUS_FULL_TIME",
+          "state": "post",
+          "completed": true,
+          "description": "Full Time",
+          "detail": "FT",
+          "shortDetail": "FT"
+        }
+      },
+      "competitions": [
+        {
+          "competitors": [
+            {
+              "homeAway": "home",
+              "score": "0",
+              "team": {
+                "abbreviation": "ESP",
+                "displayName": "Spain",
+                "shortDisplayName": "Spain",
+                "logo": "https://a.espncdn.com/i/teamlogos/countries/500/esp.png"
+              }
+            },
+            {
+              "homeAway": "away",
+              "score": "0",
+              "team": {
+                "abbreviation": "CPV",
+                "displayName": "Cape Verde",
+                "shortDisplayName": "Cape Verde",
+                "logo": "https://a.espncdn.com/i/teamlogos/countries/500/cpv.png"
+              }
+            }
+          ],
+          "status": {
+            "clock": 5400.0,
+            "displayClock": "90'+5'",
+            "period": 2,
+            "type": {
+              "id": "28",
+              "name": "STATUS_FULL_TIME",
+              "state": "post",
+              "completed": true,
+              "description": "Full Time",
+              "detail": "FT",
+              "shortDetail": "FT"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "760426",
+      "date": "2026-06-15T19:00Z",
+      "name": "Egypt at Belgium",
+      "shortName": "EGY @ BEL",
+      "status": {
+        "clock": 0.0,
+        "displayClock": "0'",
+        "type": {
+          "id": "1",
+          "name": "STATUS_SCHEDULED",
+          "state": "pre",
+          "completed": false,
+          "description": "Scheduled",
+          "detail": "Mon, June 15th at 3:00 PM EDT",
+          "shortDetail": "Scheduled"
+        }
+      },
+      "competitions": [
+        {
+          "competitors": [
+            {
+              "homeAway": "home",
+              "score": "0",
+              "team": {
+                "abbreviation": "BEL",
+                "displayName": "Belgium",
+                "shortDisplayName": "Belgium",
+                "logo": "https://a.espncdn.com/i/teamlogos/countries/500/bel.png"
+              }
+            },
+            {
+              "homeAway": "away",
+              "score": "0",
+              "team": {
+                "abbreviation": "EGY",
+                "displayName": "Egypt",
+                "shortDisplayName": "Egypt",
+                "logo": "https://a.espncdn.com/i/teamlogos/countries/500/egy.png"
+              }
+            }
+          ],
+          "status": {
+            "clock": 0.0,
+            "displayClock": "0'",
+            "type": {
+              "id": "1",
+              "name": "STATUS_SCHEDULED",
+              "state": "pre",
+              "completed": false,
+              "description": "Scheduled",
+              "detail": "Mon, June 15th at 3:00 PM EDT",
+              "shortDetail": "Scheduled"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

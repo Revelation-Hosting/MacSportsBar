@@ -32,8 +32,8 @@ Coca-Cola 600 · L245/400 · St3 · #5 Larson   ← live NASCAR Cup
 ```
 
 > **Status: pre-alpha proof-of-concept.** Under active development, built milestone by
-> milestone (see [Roadmap](#roadmap)). **Ten leagues across seven sports** — NBA, MLB, NFL,
-> NHL, NCAA football, soccer (Premier League / Champions League / MLS), PGA golf, and NASCAR
+> milestone (see [Roadmap](#roadmap)). **Eleven leagues across seven sports** — NBA, MLB, NFL,
+> NHL, NCAA football, soccer (Premier League / Champions League / MLS / **World Cup**), PGA golf, and NASCAR
 > — render in the menu bar today, each tagged with a league glyph, on an adaptive poll
 > cadence. (NASCAR shows **live lap/stage/flag telemetry** with a colored flag glyph, sourced
 > from NASCAR's own timing feed — ESPN holds no NASCAR rights, so its feed has none.)
@@ -68,7 +68,7 @@ Coca-Cola 600 · L245/400 · St3 · #5 Larson   ← live NASCAR Cup
 | Baseball         | MLB (base/out state)            | head-to-head   | **live (M3)** |
 | Football         | NFL, NCAA football              | head-to-head   | **live (M6)** |
 | Hockey           | NHL                             | head-to-head   | **live (M6)** |
-| Soccer           | Premier League, UCL, MLS        | head-to-head   | **live (M6)** |
+| Soccer           | Premier League, UCL, MLS, World Cup | head-to-head | **live (M6 + M13)** |
 | Golf             | PGA                             | leaderboard    | **live (M4)** |
 | Auto racing      | NASCAR Cup                      | field          | **live (M5 + M12: laps/stage/flags)** |
 
@@ -218,6 +218,8 @@ Full architecture, per-sport display formats, and polling policy are documented 
   car number, and a colored flag glyph (green/yellow/red/checkered). ESPN — which holds no NASCAR
   rights — can't provide this, so the live race blends ESPN (schedule/final) with NASCAR's
   feed. ✅ **done**
+- **M13** — FIFA **World Cup** (`soccer/fifa.world`), reusing the generic soccer head-to-head
+  adapter untouched — a pure league registration. Lands in time for the 2026 tournament. ✅ **done**
 
 ---
 

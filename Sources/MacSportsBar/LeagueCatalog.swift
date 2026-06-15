@@ -23,6 +23,7 @@ enum LeagueCatalog {
         let epl = LeagueID(sport: "soccer", league: "eng.1", displayName: "Premier League")
         let ucl = LeagueID(sport: "soccer", league: "uefa.champions", displayName: "Champions League")
         let mls = LeagueID(sport: "soccer", league: "usa.1", displayName: "MLS")
+        let worldcup = LeagueID(sport: "soccer", league: "fifa.world", displayName: "World Cup")
         return [
             SupportedLeague(
                 id: nba.league,
@@ -55,7 +56,9 @@ enum LeagueCatalog {
             SupportedLeague(id: ucl.league, league: ucl,
                             makeAdapter: { HeadToHeadAdapter(league: ucl, favorites: $0, style: .soccer) }),
             SupportedLeague(id: mls.league, league: mls,
-                            makeAdapter: { HeadToHeadAdapter(league: mls, favorites: $0, style: .soccer) })
+                            makeAdapter: { HeadToHeadAdapter(league: mls, favorites: $0, style: .soccer) }),
+            SupportedLeague(id: worldcup.league, league: worldcup,
+                            makeAdapter: { HeadToHeadAdapter(league: worldcup, favorites: $0, style: .soccer) })
         ]
     }()
 }
