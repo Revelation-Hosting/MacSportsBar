@@ -187,8 +187,9 @@ Polling is adaptive and deliberately gentle: slow (every 5 min) when nothing is 
 start nears** (every minute within 15 min, every 20s in the final stretch) so tip-off is caught
 promptly rather than on the slow idle tick.
 
-Full architecture, per-sport display formats, and polling policy are documented in
-[menubar-sports-app-spec.md](menubar-sports-app-spec.md).
+How the code is organized — the adapter pattern, the data flow, and how to add a league or a new
+sport — is in **[ARCHITECTURE.md](ARCHITECTURE.md)**. The product design, per-sport display formats,
+and polling policy are in [menubar-sports-app-spec.md](menubar-sports-app-spec.md).
 
 ---
 
