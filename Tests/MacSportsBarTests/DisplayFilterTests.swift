@@ -31,6 +31,27 @@ final class DisplayFilterTests: XCTestCase {
         XCTAssertEqual(shown.map(\.id), ["a", "b"])
     }
 
+    // MARK: - Stale-final filter (idle/off-season leagues keep returning their last game)
+
+    private func dated(_ id: String, _ state: SportEvent.State, date: Date?) -> SportEvent {
+        SportEvent(id: id, league: league, state: state, displayString: id,
+                   isFavorite: false, sortPriority: 0, date: date)
+    }
+
+    func testDropsFinalsOlderThan24h() {
+        let now = Date(timeIntervalSince1970: 2_000_000)
+        let events = [
+            dated("old", .final, date: now.addingTimeInterval(-21 * 86_400)),  // 3 weeks → drop
+            dated("recent", .final, date: now.addingTimeInterval(-3600)),       // 1h → keep
+            dated("live", .live, date: now.addingTimeInterval(-9999)),          // live → keep
+            dated("upcoming", .pre(startDate: nil), date: now.addingTimeInterval(7200)), // keep
+            dated("nodate", .final, date: nil),                                 // no date → keep
+        ]
+        let fresh = AppModel.freshDisplayEvents(events, now: now).map(\.id)
+        XCTAssertEqual(fresh, ["recent", "live", "upcoming", "nodate"])
+        XCTAssertFalse(fresh.contains("old"), "a 3-week-old final must not linger")
+    }
+
     func testHasAnyFavoritesCountsStructuredPicks() {
         let suite = "MacSportsBarTests.hasFav.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suite)!

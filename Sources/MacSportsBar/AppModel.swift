@@ -247,7 +247,11 @@ final class AppModel: ObservableObject {
     /// Derive what's shown from `lastRanked`: apply the favorites-only filter, recompute the
     /// cycle set and poll cadence, and refresh the menu-bar string. Cheap — no network.
     private func applyDisplay() {
-        let shown = Self.displaySet(from: lastRanked,
+        // Drop stale finals first: an idle/off-season league's scoreboard keeps returning its
+        // last game forever (ESPN served a 3-week-old NBA Finals final all summer), so a final
+        // older than the ±24h window shouldn't linger in the ticker or the dropdown.
+        let fresh = Self.freshDisplayEvents(lastRanked, now: Date())
+        let shown = Self.displaySet(from: fresh,
                                     favoritesOnly: settings.favoritesOnly,
                                     hasFavorites: settings.hasAnyFavorites)
         events = shown
@@ -508,6 +512,19 @@ final class AppModel: ObservableObject {
         if full.count <= cap { return full }
         if let short, short.count <= cap { return short }
         return truncate(short ?? full, limit: limit)
+    }
+
+    /// Drop **stale finals** — a `final` whose date is older than `staleAfter` (default 24h).
+    /// An idle/off-season league's scoreboard keeps returning its last game indefinitely, so
+    /// without this a weeks-old final lingers in the ticker/dropdown. Live and upcoming events,
+    /// recent finals, and events with no date are all kept. Pure — a tested seam.
+    nonisolated static func freshDisplayEvents(
+        _ events: [SportEvent], now: Date, staleAfter: TimeInterval = 24 * 3600
+    ) -> [SportEvent] {
+        events.filter { event in
+            guard event.isFinal, let date = event.date else { return true }
+            return now.timeIntervalSince(date) <= staleAfter
+        }
     }
 
     /// What the menu shows: when "favorites only" is on AND the user actually has favorites
