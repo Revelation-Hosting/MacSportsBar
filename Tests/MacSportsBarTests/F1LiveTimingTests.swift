@@ -83,6 +83,40 @@ final class F1LiveTimingTests: XCTestCase {
         XCTAssertNotNil(snapshot.drivers[leader], "the P1 number resolves to a driver")
     }
 
+    // MARK: - Real LIVE qualifying capture (2026 Hungaroring, Q3 in progress)
+
+    /// Captured mid-Q3 while qualifying was actually running — the fixture that proves the live
+    /// path end to end, and that pins where the qualifying phase really lives.
+    private func liveQualiFixture() throws -> F1LiveSnapshot {
+        let url = try XCTUnwrap(Bundle.module.url(
+            forResource: "f1_quali_live", withExtension: "json", subdirectory: "Fixtures"))
+        let object = try JSONSerialization.jsonObject(with: Data(contentsOf: url))
+        return F1LiveSnapshot(raw: try XCTUnwrap(object as? [String: Any]))
+    }
+
+    func testQualifyingPhaseComesFromTimingDataSessionPart() throws {
+        // Regression: the phase is TimingData.SessionPart, NOT SessionData.Series[].QualifyingPart
+        // — the SessionData topic isn't returned in the Subscribe snapshot at all. Reading the
+        // wrong path silently dropped "Q3" from the readout.
+        let snapshot = try liveQualiFixture()
+        XCTAssertEqual(snapshot.qualifyingPhase, 3, "Q3 was running when this was captured")
+    }
+
+    func testLiveQualifyingSnapshotIsLiveAndReadsCorrectly() throws {
+        let snapshot = try liveQualiFixture()
+        let captured = try XCTUnwrap(snapshot.heartbeat)
+        XCTAssertTrue(snapshot.isLive(now: captured.addingTimeInterval(10)),
+                      "a running session with a fresh heartbeat is live")
+        XCTAssertEqual(snapshot.sessionName, "Qualifying")
+        XCTAssertEqual(snapshot.flag, .green)
+
+        let live = try XCTUnwrap(FormulaOneAdapter.liveReadout(from: snapshot, season: 2026))
+        XCTAssertEqual(live.detail, "Q3 · HAM (Ferrari)", "Hamilton led Q3 at capture time")
+        XCTAssertEqual(live.grandPrix, "Hungary GP")
+        XCTAssertEqual(live.accentHex, "ED1131", "Ferrari red")
+        XCTAssertEqual(live.logo?.absoluteString.contains("/2026/ferrari/"), true)
+    }
+
     // MARK: - TrackStatus → RaceFlag
 
     func testTrackStatusMapping() {

@@ -174,8 +174,15 @@ struct F1LiveSnapshot {
     var currentLap: Int? { topic("LapCount")?["CurrentLap"] as? Int }
     var totalLaps: Int? { topic("LapCount")?["TotalLaps"] as? Int }
 
-    /// Qualifying phase 1/2/3, from `SessionData`'s series entries (the last one wins).
+    /// Qualifying phase 1/2/3.
+    ///
+    /// Verified live during 2026 Hungaroring qualifying: this is `TimingData.SessionPart`. It is
+    /// *not* `SessionData.Series[].QualifyingPart` — the `SessionData` topic isn't even returned
+    /// in the Subscribe snapshot — though that path is kept as a fallback in case the feed serves
+    /// it in other conditions.
     var qualifyingPhase: Int? {
+        if let part = topic("TimingData")?["SessionPart"] as? Int { return part }
+        if let part = (topic("TimingData")?["SessionPart"] as? String).flatMap(Int.init) { return part }
         guard let series = topic("SessionData")?["Series"] else { return nil }
         let entries: [[String: Any]]
         if let array = series as? [[String: Any]] { entries = array }
