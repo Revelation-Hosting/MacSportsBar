@@ -111,7 +111,7 @@ final class F1LiveTimingTests: XCTestCase {
         XCTAssertEqual(snapshot.flag, .green)
 
         let live = try XCTUnwrap(FormulaOneAdapter.liveReadout(from: snapshot, season: 2026))
-        XCTAssertEqual(live.detail, "Q3 · HAM (Ferrari)", "Hamilton led Q3 at capture time")
+        XCTAssertEqual(live.detail, "Q3 · HAM", "Hamilton led Q3 at capture time (team is carried by the mark)")
         XCTAssertEqual(live.grandPrix, "Hungary GP")
         XCTAssertEqual(live.accentHex, "ED1131", "Ferrari red")
         XCTAssertEqual(live.logo?.absoluteString.contains("/2026/ferrari/"), true)
@@ -133,14 +133,14 @@ final class F1LiveTimingTests: XCTestCase {
         var raw = liveSnapshot(session: "Qualifying", trackStatus: "1", phase: 3).raw
         raw["ExtrapolatedClock"] = ["Remaining": "00:01:52", "Extrapolating": true]
         let live = try XCTUnwrap(FormulaOneAdapter.liveReadout(from: F1LiveSnapshot(raw: raw), season: 2026))
-        XCTAssertEqual(live.detail, "Q3 1:52 · NOR (McLaren)", "the phase and its clock read together")
+        XCTAssertEqual(live.detail, "Q3 1:52 · NOR", "the phase and its clock read together")
     }
 
     func testPracticeShowsJustTheClock() throws {
         var raw = liveSnapshot(session: "Practice 2", trackStatus: "1").raw
         raw["ExtrapolatedClock"] = ["Remaining": "00:42:10"]
         let live = try XCTUnwrap(FormulaOneAdapter.liveReadout(from: F1LiveSnapshot(raw: raw), season: 2026))
-        XCTAssertEqual(live.detail, "42:10 · NOR (McLaren)", "practice has no phase, just time left")
+        XCTAssertEqual(live.detail, "42:10 · NOR", "practice has no phase, just time left")
     }
 
     // MARK: - TrackStatus → RaceFlag
@@ -187,7 +187,7 @@ final class F1LiveTimingTests: XCTestCase {
     func testRaceReadoutUnderSafetyCar() throws {
         let live = try XCTUnwrap(FormulaOneAdapter.liveReadout(
             from: liveSnapshot(session: "Race", trackStatus: "4", lap: 32, total: 70)))
-        XCTAssertEqual(live.detail, "L32/70 · SC · NOR (McLaren)")
+        XCTAssertEqual(live.detail, "L32/70 · SC · NOR")
         XCTAssertEqual(live.flag, .safetyCar)
         XCTAssertEqual(live.accentHex, "F47600")
         XCTAssertTrue(live.isRace)
@@ -196,21 +196,21 @@ final class F1LiveTimingTests: XCTestCase {
     func testQualifyingReadoutShowsPhase() throws {
         let live = try XCTUnwrap(FormulaOneAdapter.liveReadout(
             from: liveSnapshot(session: "Qualifying", trackStatus: "1", phase: 2)))
-        XCTAssertEqual(live.detail, "Q2 · NOR (McLaren)", "green needs no flag word")
+        XCTAssertEqual(live.detail, "Q2 · NOR", "green needs no flag word")
         XCTAssertFalse(live.isRace)
     }
 
     func testQualifyingRedFlagged() throws {
         let live = try XCTUnwrap(FormulaOneAdapter.liveReadout(
             from: liveSnapshot(session: "Qualifying", trackStatus: "5", phase: 3)))
-        XCTAssertEqual(live.detail, "Q3 · RED · NOR (McLaren)")
+        XCTAssertEqual(live.detail, "Q3 · RED · NOR")
         XCTAssertEqual(live.flag, .red)
     }
 
     func testVirtualSafetyCarReadout() throws {
         let live = try XCTUnwrap(FormulaOneAdapter.liveReadout(
             from: liveSnapshot(session: "Race", trackStatus: "6", lap: 12, total: 70)))
-        XCTAssertEqual(live.detail, "L12/70 · VSC · NOR (McLaren)")
+        XCTAssertEqual(live.detail, "L12/70 · VSC · NOR")
     }
 
     func testLiveOverlayReplacesTheScheduledSession() throws {
@@ -224,7 +224,7 @@ final class F1LiveTimingTests: XCTestCase {
         let applied = FormulaOneAdapter.applyLive(live, to: scheduled)
         XCTAssertTrue(applied.isLive)
         XCTAssertEqual(applied.id, "600057440-Race", "keeps ESPN's id so notifications track it")
-        XCTAssertEqual(applied.displayString, "Hungary GP · L5/70 · NOR (McLaren)")
+        XCTAssertEqual(applied.displayString, "Hungary GP · L5/70 · NOR")
         XCTAssertEqual(applied.sortPriority, 1000, "a live favorite outranks everything")
     }
 
@@ -258,6 +258,67 @@ final class F1LiveTimingTests: XCTestCase {
                                    displayString: "", isFavorite: false, sortPriority: 0)
         XCTAssertNotNil(FormulaOneAdapter.applyLive(live, to: scheduled).leadLogo,
                         "the overlay carries the logo through to the menu bar")
+    }
+
+    // MARK: - Layout: the mark goes beside the driver, and isn't duplicated in text
+
+    func testLeadLogoSplitsBeforeTheFinalSegment() {
+        let split = AppModel.splitForLeadLogo("Hungary GP · Q3 1:52 · NOR")
+        XCTAssertEqual(split.before, "Hungary GP · Q3 1:52 · ")
+        XCTAssertEqual(split.after, "NOR", "the mark sits next to the driver it identifies")
+        // No separator: everything follows the logo rather than vanishing.
+        let bare = AppModel.splitForLeadLogo("NOR")
+        XCTAssertEqual(bare.before, "")
+        XCTAssertEqual(bare.after, "NOR")
+    }
+
+    func testTeamNameIsOmittedFromTextWhenALogoWillCarryIt() throws {
+        let live = try XCTUnwrap(FormulaOneAdapter.liveReadout(
+            from: liveSnapshot(session: "Qualifying", trackStatus: "1", phase: 3), season: 2026))
+        XCTAssertEqual(live.detail, "Q3 · NOR", "the mark says McLaren; don't say it twice")
+        XCTAssertNotNil(live.logo)
+    }
+
+    func testTeamNameIsKeptWhenThereIsNoLogo() throws {
+        // No team in DriverList -> nothing to draw, so the text must still identify the driver.
+        let raw: [String: Any] = [
+            "SessionInfo": ["Name": "Race", "Meeting": ["Country": ["Name": "Hungary"]]],
+            "TrackStatus": ["Status": "1"],
+            "DriverList": ["4": ["Tla": "NOR"]],
+            "TimingData": ["Lines": ["4": ["Position": "1"]]],
+            "LapCount": ["CurrentLap": 5, "TotalLaps": 70],
+        ]
+        let live = try XCTUnwrap(FormulaOneAdapter.liveReadout(from: F1LiveSnapshot(raw: raw), season: 2026))
+        XCTAssertEqual(live.detail, "L5/70 · NOR")
+        XCTAssertNil(live.logo)
+    }
+
+    // MARK: - ESPN's stale "In Progress"
+
+    func testFinishedFeedCorrectsESPNsStaleInProgress() throws {
+        // ESPN keeps an F1 session "in" for a long time after it ends. Once the live feed says
+        // finished, show the result instead of a status that will not update for hours.
+        let stale = SportEvent(
+            id: "600057440-Qual", league: f1, state: .live,
+            displayString: "Hungary GP · Qualifying · In Progress",
+            isFavorite: false, sortPriority: 800)
+        let live = try XCTUnwrap(FormulaOneAdapter.liveReadout(
+            from: liveSnapshot(session: "Qualifying", trackStatus: "1", phase: 3), season: 2026))
+
+        let corrected = FormulaOneAdapter.applyFinished(live, to: stale)
+        XCTAssertTrue(corrected.isFinal)
+        XCTAssertEqual(corrected.displayString, "Hungary GP · Qualifying · NOR")
+        XCTAssertNil(corrected.flag, "a finished session flies no flag")
+        XCTAssertNotNil(corrected.leadLogo)
+    }
+
+    func testFinishedRaceCreditsTheWinner() throws {
+        let stale = SportEvent(id: "x-Race", league: f1, state: .live, displayString: "",
+                               isFavorite: false, sortPriority: 800)
+        let live = try XCTUnwrap(FormulaOneAdapter.liveReadout(
+            from: liveSnapshot(session: "Race", trackStatus: "1", lap: 70, total: 70), season: 2026))
+        XCTAssertEqual(FormulaOneAdapter.applyFinished(live, to: stale).displayString,
+                       "Hungary GP · NOR won")
     }
 
     // MARK: - SignalR envelope

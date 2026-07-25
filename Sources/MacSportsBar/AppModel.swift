@@ -450,27 +450,37 @@ final class AppModel: ObservableObject {
             // Live NASCAR: a *colored* flag glyph (green/yellow/red) keeps its hue; checkered/pace
             // and the text tint with the menu bar below.
             let (symbol, color) = Self.flagGlyph(flag)
+            let split = Self.splitForLeadLogo(menuBarText)
             content = AnyView(
                 HStack(spacing: 4) {
                     if let color { Image(systemName: symbol).foregroundStyle(color) }
                     else { Image(systemName: symbol) }
-                    if let leadImage {   // F1: the leading driver's constructor mark
+                    if let leadImage {
+                        // The constructor mark belongs next to the driver it identifies, not ahead
+                        // of the track name.
+                        Text(split.before)
                         Image(nsImage: leadImage).resizable().scaledToFit().frame(width: 15, height: 15)
+                        Text(split.after)
+                    } else {
+                        Text(menuBarText)
                     }
-                    Text(menuBarText)
                 }
             )
         } else if let accent = currentAccentHex.flatMap(Self.color(hex:)) {
             // Formula 1: the league glyph carries the leading constructor's livery colour, so the
             // team reads at a glance (ESPN has no F1 team logos, and bundling constructor marks
             // into a public repo is a trademark problem).
+            let split = Self.splitForLeadLogo(menuBarText)
             content = AnyView(
                 HStack(spacing: 4) {
                     Image(systemName: menuBarSymbol).foregroundStyle(accent)
-                    if let leadImage {   // F1: the winning constructor's mark
+                    if let leadImage {
+                        Text(split.before)
                         Image(nsImage: leadImage).resizable().scaledToFit().frame(width: 15, height: 15)
+                        Text(split.after)
+                    } else {
+                        Text(menuBarText)
                     }
-                    Text(menuBarText)
                 }
             )
         } else {
@@ -496,6 +506,14 @@ final class AppModel: ObservableObject {
         image.isTemplate = false  // uniform flat look across every sport
         menuBar.image = image
         lastRenderSignature = signature
+    }
+
+    /// Where to slot a lead logo into the readout: immediately before the **final** segment, which
+    /// is the competitor the mark identifies (`Hungary GP · Q3 1:52 · ` + logo + `HAM`). Falls back
+    /// to putting everything after the logo when there's no separator. Pure — a tested seam.
+    nonisolated static func splitForLeadLogo(_ text: String) -> (before: String, after: String) {
+        guard let range = text.range(of: " · ", options: .backwards) else { return ("", text) }
+        return (String(text[..<range.lowerBound]) + " · ", String(text[range.upperBound...]))
     }
 
     /// Parse an `RRGGBB` hex string (OpenF1 supplies constructor liveries this way) into a

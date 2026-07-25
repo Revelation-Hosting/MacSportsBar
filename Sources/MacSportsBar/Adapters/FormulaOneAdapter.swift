@@ -44,12 +44,23 @@ struct FormulaOneAdapter: SportAdapter {
         var events = (payload.events ?? []).flatMap { map($0, constructors: teams) }
 
         // Live only concerns today's sessions, so skip it for adjacent-day window fetches.
-        guard dates == nil, let snapshot = await liveSnapshot(), snapshot.isLive() else { return events }
-        guard let live = Self.liveReadout(from: snapshot) else { return events }
+        guard dates == nil, let snapshot = await liveSnapshot(),
+              let live = Self.liveReadout(from: snapshot) else { return events }
+        let index = events.firstIndex { Self.matches(event: $0, live: live) }
+
+        guard snapshot.isLive() else {
+            // The session has ended. ESPN keeps reporting it "in progress" for a long while
+            // afterwards (its F1 feed is scrubbed, not live), so a stale "In Progress" would sit
+            // in the bar indefinitely — trust the live feed's own "finished" and show the result.
+            if let index, events[index].isLive {
+                events[index] = Self.applyFinished(live, to: events[index])
+            }
+            return events
+        }
 
         // Replace the matching scheduled session with the live one; if ESPN hasn't listed it
         // (its F1 status lags badly), surface the live session on its own.
-        if let index = events.firstIndex(where: { Self.matches(event: $0, live: live) }) {
+        if let index {
             events[index] = Self.applyLive(live, to: events[index])
         } else {
             events.append(Self.liveEvent(live, league: league))
@@ -144,11 +155,15 @@ struct FormulaOneAdapter: SportAdapter {
             ?? snapshot.meetingName ?? "Grand Prix"
         let isRace = session.lowercased().contains("race")
 
-        // Leader + constructor, straight from the feed (DriverList carries both).
+        // Leader + constructor, straight from the feed (DriverList carries both). When we have a
+        // constructor logo the team name is left out of the text — the mark already says it, and
+        // printing both reads as the team twice.
         let drivers = snapshot.drivers
         let leader = snapshot.leaderNumber.flatMap { drivers[$0] }
+        let hasLogo = leader?.team != nil
         let who = leader.map { entry -> String in
-            entry.team.map { "\(entry.tla) (\($0))" } ?? entry.tla
+            guard !hasLogo, let team = entry.team else { return entry.tla }
+            return "\(entry.tla) (\(team))"
         }
 
         var parts: [String] = []
@@ -199,6 +214,23 @@ struct FormulaOneAdapter: SportAdapter {
         event.menuShort = live.detail
         event.sortPriority = event.isFavorite ? 1000 : 800
         event.flag = live.flag
+        event.accentHex = live.accentHex
+        event.leadLogo = live.logo
+        return event
+    }
+
+    /// Correct ESPN's stale "In Progress" once the live feed reports the session finished: show
+    /// who topped it (pole, or the winner) instead of a status that will not update for hours.
+    nonisolated static func applyFinished(_ live: LiveReadout, to base: SportEvent) -> SportEvent {
+        var event = base
+        event.state = .final
+        // Drop the lap/clock fragment — only the result matters now.
+        let who = live.detail.components(separatedBy: " · ").last ?? live.detail
+        let credit = live.isRace ? "\(who) won" : "\(live.session) · \(who)"
+        event.displayString = "\(live.grandPrix) · \(credit)"
+        event.menuShort = credit
+        event.sortPriority = event.isFavorite ? 300 : 100
+        event.flag = nil
         event.accentHex = live.accentHex
         event.leadLogo = live.logo
         return event
