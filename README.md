@@ -32,11 +32,12 @@ Coca-Cola 600 · L245/400 · St3 · #5 Larson   ← live NASCAR Cup
 ```
 
 > **Status: pre-alpha proof-of-concept.** Under active development, built milestone by
-> milestone (see [Roadmap](#roadmap)). **Eleven leagues across seven sports** — NBA, MLB, NFL,
-> NHL, NCAA football, soccer (Premier League / Champions League / MLS / **World Cup**), PGA golf, and NASCAR
-> — render in the menu bar today, each tagged with a league glyph, on an adaptive poll
-> cadence. (NASCAR shows **live lap/stage/flag telemetry** with a colored flag glyph, sourced
-> from NASCAR's own timing feed — ESPN holds no NASCAR rights, so its feed has none.)
+> milestone (see [Roadmap](#roadmap)). **Twelve leagues across seven sports** — NBA, MLB, NFL,
+> NHL, NCAA football, soccer (Premier League / Champions League / MLS / **World Cup**), PGA golf,
+> NASCAR, and **Formula 1** — render in the menu bar today, each tagged with a league glyph, on an
+> adaptive poll cadence. (NASCAR shows **live lap/stage/flag telemetry** with a colored flag glyph,
+> sourced from NASCAR's own timing feed — ESPN holds no NASCAR rights, so its feed has none.
+> Formula 1 is **schedule + session results**, not live — see [Formula 1](#formula-1-what-it-does-and-doesnt-show).)
 
 ---
 
@@ -71,8 +72,39 @@ Coca-Cola 600 · L245/400 · St3 · #5 Larson   ← live NASCAR Cup
 | Soccer           | Premier League, UCL, MLS, World Cup | head-to-head | **live (M6 + M13)** |
 | Golf             | PGA                             | leaderboard    | **live (M4)** |
 | Auto racing      | NASCAR Cup                      | field          | **live (M5 + M12: laps/stage/flags)** |
+| Auto racing      | Formula 1                       | sessions       | **live (M14: schedule + results)** |
 
 See the full design in **[menubar-sports-app-spec.md](menubar-sports-app-spec.md)**.
+
+### Formula 1: what it does and doesn't show
+
+F1 is the one sport here with a hard data ceiling, so it's worth stating plainly.
+
+**It shows** each Grand Prix weekend's **qualifying and race** — when they start, and who won once
+they're done, with the winner's **constructor** named and the menu-bar glyph tinted to that team's
+livery colour:
+
+```
+🏁 Hungary GP · Qualifying · Sat 7:00a       ← upcoming session
+🟠 Belgium GP · Qualifying · Norris (McLaren) ← glyph tinted McLaren papaya
+🩵 Belgium GP · Antonelli won (Mercedes)      ← race result
+```
+
+Practice sessions are skipped deliberately — they'd triple the rotation for results nobody glances
+at a menu bar for.
+
+**It does not show live session data** — no live positions, no flags, no safety car or VSC, no
+Q1/Q2/Q3 clock. That isn't an oversight:
+
+- **ESPN** reports `liveAvailable: false` and `gameSource: "scrubbed"` for F1 — classifications
+  appear *after* a session, not during it — and carries no constructor data at all.
+- **OpenF1** *does* have all of it (flags, safety car, VSC, sector yellows, qualifying phases), but
+  its free tier is **historical only**: anything from a session in progress, or ended less than 30
+  minutes ago, requires a paid subscription. MacSportsBar stays keyless, so it uses only the free
+  tier — for the driver → constructor mapping, cached for hours (a handful of requests per day,
+  well inside OpenF1's free budget of 30 requests/minute).
+
+Contrast with NASCAR, which *is* live here, because NASCAR publishes its live timing feed openly.
 
 ---
 
@@ -130,7 +162,7 @@ General ▸ Login Items** to start it at login.
 
 ## Tests
 
-The deterministic model and formatting logic is covered by **118 hermetic XCTest cases** —
+The deterministic model and formatting logic is covered by **154 hermetic XCTest cases** —
 every adapter's decode → format path (basketball; baseball with base/out state; the generic
 head-to-head adapter for football, hockey, and soccer; the golf leaderboard; NASCAR's ESPN
 baseline; and the NASCAR live-feed mapping with its flag-state enum), period/inning labels,
@@ -181,6 +213,9 @@ A small, isolated-adapter architecture so a breaking upstream change is a one-fi
   blends two sources: ESPN for the schedule/final, NASCAR's feed to enrich a live race. Handy
   bonus — NASCAR publishes a [Swagger spec](https://feed.nascar.com/swagger), so its field
   names and enums are documented rather than reverse-engineered.
+- `OpenF1Client` — a third chokepoint, used only for the Formula 1 driver → constructor mapping
+  (ESPN carries no F1 team data). Deliberately reads only OpenF1's **free historical tier** and
+  caches for hours; see [Formula 1](#formula-1-what-it-does-and-doesnt-show).
 
 Polling is adaptive and deliberately gentle: slow (every 5 min) when nothing is live, fast
 (5–10s) when a relevant event is in progress — and it **ramps up as a favorite's scheduled
@@ -221,20 +256,31 @@ and polling policy are in [menubar-sports-app-spec.md](menubar-sports-app-spec.m
   feed. ✅ **done**
 - **M13** — FIFA **World Cup** (`soccer/fifa.world`), reusing the generic soccer head-to-head
   adapter untouched — a pure league registration. Lands in time for the 2026 tournament. ✅ **done**
+- **M14** — **Formula 1** (`racing/f1`): one entry per notable session (qualifying, sprint, race)
+  with the winner's constructor and a livery-tinted glyph. Guards two ESPN traps — the event-level
+  status lies on a live weekend, and a cancelled GP reports `state: "post"`. Schedule + results
+  only; live F1 is paywalled. ✅ **done**
 
 ---
 
 ## Disclaimer
 
 This project pulls scores from **public sports data endpoints that are not officially
-supported for third-party use** (ESPN's, and NASCAR's own timing feed). Those endpoints can
+supported for third-party use** (ESPN's, NASCAR's own timing feed, and OpenF1). Those endpoints can
 change shape or disappear without notice, and this project is **not affiliated with, endorsed
 by, or sponsored by** any data provider, league, team, or broadcaster.
 
-All league names, team names, driver names, and logos (e.g. NBA, MLB, PGA TOUR, NASCAR,
-and the relevant universities) are trademarks of their respective owners and are used here
-only for identification. The software is provided "as is," without warranty of any kind —
-see [LICENSE](LICENSE). Use it responsibly and at your own risk.
+Formula 1 constructor data comes from **[OpenF1](https://openf1.org)**, an unofficial,
+community-operated project that is likewise not associated with Formula 1. OpenF1's data is
+licensed **[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/)** — note that
+those NonCommercial and ShareAlike terms attach to *that data*, and are not granted by this
+project's MIT license. If you fork this and plan anything commercial, that's yours to resolve.
+
+All league names, team names, driver names, and logos (e.g. NBA, MLB, PGA TOUR, NASCAR, Formula 1
+and its constructors, and the relevant universities) are trademarks of their respective owners and
+are used here only for identification — which is why F1 constructors are shown as a name plus a
+livery colour rather than bundled logo artwork. The software is provided "as is," without warranty
+of any kind — see [LICENSE](LICENSE). Use it responsibly and at your own risk.
 
 ---
 

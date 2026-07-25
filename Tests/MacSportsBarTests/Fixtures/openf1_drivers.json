@@ -1,0 +1,134 @@
+[
+  {
+    "last_name": "Norris",
+    "name_acronym": "NOR",
+    "team_name": "McLaren",
+    "team_colour": "F47600"
+  },
+  {
+    "last_name": "Verstappen",
+    "name_acronym": "VER",
+    "team_name": "Red Bull Racing",
+    "team_colour": "4781D7"
+  },
+  {
+    "last_name": "Bortoleto",
+    "name_acronym": "BOR",
+    "team_name": "Audi",
+    "team_colour": "F50537"
+  },
+  {
+    "last_name": "Hadjar",
+    "name_acronym": "HAD",
+    "team_name": "Red Bull Racing",
+    "team_colour": "4781D7"
+  },
+  {
+    "last_name": "Gasly",
+    "name_acronym": "GAS",
+    "team_name": "Alpine",
+    "team_colour": "00A1E8"
+  },
+  {
+    "last_name": "Perez",
+    "name_acronym": "PER",
+    "team_name": "Cadillac",
+    "team_colour": "909090"
+  },
+  {
+    "last_name": "Antonelli",
+    "name_acronym": "ANT",
+    "team_name": "Mercedes",
+    "team_colour": "00D7B6"
+  },
+  {
+    "last_name": "Alonso",
+    "name_acronym": "ALO",
+    "team_name": "Aston Martin",
+    "team_colour": "229971"
+  },
+  {
+    "last_name": "Leclerc",
+    "name_acronym": "LEC",
+    "team_name": "Ferrari",
+    "team_colour": "ED1131"
+  },
+  {
+    "last_name": "Stroll",
+    "name_acronym": "STR",
+    "team_name": "Aston Martin",
+    "team_colour": "229971"
+  },
+  {
+    "last_name": "Albon",
+    "name_acronym": "ALB",
+    "team_name": "Williams",
+    "team_colour": "1868DB"
+  },
+  {
+    "last_name": "Hulkenberg",
+    "name_acronym": "HUL",
+    "team_name": "Audi",
+    "team_colour": "F50537"
+  },
+  {
+    "last_name": "Lawson",
+    "name_acronym": "LAW",
+    "team_name": "Racing Bulls",
+    "team_colour": "6C98FF"
+  },
+  {
+    "last_name": "Ocon",
+    "name_acronym": "OCO",
+    "team_name": "Haas F1 Team",
+    "team_colour": "9C9FA2"
+  },
+  {
+    "last_name": "Lindblad",
+    "name_acronym": "LIN",
+    "team_name": "Racing Bulls",
+    "team_colour": "6C98FF"
+  },
+  {
+    "last_name": "Colapinto",
+    "name_acronym": "COL",
+    "team_name": "Alpine",
+    "team_colour": "00A1E8"
+  },
+  {
+    "last_name": "Hamilton",
+    "name_acronym": "HAM",
+    "team_name": "Ferrari",
+    "team_colour": "ED1131"
+  },
+  {
+    "last_name": "Sainz",
+    "name_acronym": "SAI",
+    "team_name": "Williams",
+    "team_colour": "1868DB"
+  },
+  {
+    "last_name": "Russell",
+    "name_acronym": "RUS",
+    "team_name": "Mercedes",
+    "team_colour": "00D7B6"
+  },
+  {
+    "last_name": "Bottas",
+    "name_acronym": "BOT",
+    "team_name": "Cadillac",
+    "team_colour": "909090"
+  },
+  {
+    "last_name": "Piastri",
+    "name_acronym": "PIA",
+    "team_name": "McLaren",
+    "team_colour": "F47600"
+  },
+  {
+    "last_name": "Bearman",
+    "name_acronym": "BEA",
+    "team_name": "Haas F1 Team",
+    "team_colour": "9C9FA2"
+  }
+]

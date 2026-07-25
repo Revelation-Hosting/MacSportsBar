@@ -35,9 +35,9 @@ window), and renders a single menu-bar image.
 | File | Responsibility |
 |------|----------------|
 | `SportAdapter.swift` | The `SportAdapter` protocol + `LeagueID` (sport/league slug + glyph). |
-| `Adapters/*.swift` | One adapter per data **shape**: `BasketballAdapter`, `BaseballAdapter` (base/out), `GolfAdapter` (leaderboard), `RacingAdapter` (field), and the generic `HeadToHeadAdapter` (`PeriodStyle` = quarters / hockey / soccer). |
+| `Adapters/*.swift` | One adapter per data **shape**: `BasketballAdapter`, `BaseballAdapter` (base/out), `GolfAdapter` (leaderboard), `RacingAdapter` (field), `FormulaOneAdapter` (multi-session weekend), and the generic `HeadToHeadAdapter` (`PeriodStyle` = quarters / hockey / soccer). |
 | `SportEvent.swift` | The normalized model — `pre`/`live`/`final` state, `displayString`, optional `matchup`, team-logo URLs, and a `RaceFlag`. |
-| `ESPNClient.swift` / `NASCARClient.swift` | Thin HTTP chokepoints (timeouts, headers, decoding) so adapters don't reinvent networking. |
+| `ESPNClient.swift` / `NASCARClient.swift` / `OpenF1Client.swift` | Thin HTTP chokepoints (timeouts, headers, decoding) so adapters don't reinvent networking. |
 | `LeagueCatalog.swift` | The league registry. Adding a league = one `SupportedLeague` entry here. |
 | `AppModel.swift` | `@MainActor` brain: the poll loop, adaptive cadence, ranking, cycling, the favorites window, and the menu-bar render. Also defines `MenuBarPresenter`. |
 | `MacSportsBarApp.swift` | App entry, `MenuBarExtra` scene, the `--smoke-test` path, the accessory (agent) activation policy. |
@@ -67,8 +67,16 @@ The single normalized shape the UI consumes. Adapters differ wildly upstream; ev
 
 ### Clients
 `ESPNClient` wraps the public ESPN scoreboard API. `NASCARClient` is a second chokepoint for
-NASCAR's own live timing feed (see *Data sources*). Both are intentionally thin — the seam where a
-caching proxy or base-URL swap would live.
+NASCAR's own live timing feed, and `OpenF1Client` a third for Formula 1 constructors (see *Data
+sources*). All are intentionally thin — the seam where a caching proxy or base-URL swap would live.
+
+Two sports blend sources, and they do it differently. NASCAR *enriches* an ESPN event in place —
+ESPN owns the schedule and final, NASCAR's feed overwrites a live race with real lap/stage/flag
+telemetry. Formula 1 instead *fans out*: one ESPN event carries five sibling session competitions,
+so `FormulaOneAdapter` emits one `SportEvent` per notable session (qualifying, sprint, race —
+practice is skipped) and uses OpenF1 only to attach the constructor. Because adapters are rebuilt
+on every poll tick (`AppModel.adapters` is computed), that constructor map cannot be cached on the
+adapter — it lives in the process-wide `OpenF1ConstructorDirectory` actor with a multi-hour TTL.
 
 ### `LeagueCatalog`
 A flat list of `SupportedLeague { id, league, makeAdapter }`. The poll loop, the Settings toggles,
@@ -137,5 +145,16 @@ stays green and fully hermetic (it runs identically locally and in CI).
   with no live laps/stages/flags). Live telemetry comes from `cf.nascar.com/live/feeds/live-feed.json`
   — and unlike ESPN, NASCAR publishes a [Swagger spec](https://feed.nascar.com/swagger). `RacingAdapter`
   blends ESPN (schedule/final) with NASCAR's feed (live lap/stage/flag/leader).
+- **Formula 1** has a hard ceiling. ESPN reports `liveAvailable: false` / `gameSource: "scrubbed"`
+  for F1 and carries no team data, and [OpenF1](https://openf1.org)'s free tier is *historical
+  only* — anything from a session in progress, or ended under 30 minutes ago, is a paid tier. So F1
+  is schedule + session results, and OpenF1 is used solely for the driver → constructor map, cached
+  for hours. OpenF1's data is CC BY-NC-SA 4.0 (see the README disclaimer); it is unofficial and
+  unaffiliated with Formula 1.
+  - Two ESPN traps `FormulaOneAdapter` guards, both with fixture tests: on a live weekend the
+    **event-level status lies** (`STATUS_FINAL` while the race is still scheduled — only the
+    per-competition status is trustworthy), and a **cancelled GP reports `state: "post"`** with
+    `completed: false`, which a naive `post → final` rule renders as a finished race.
 
-Keyless by design means there are no secrets to leak — safe for a public repo.
+Keyless by design means there are no secrets to leak — safe for a public repo. That constraint is
+also why F1 has no live readout: the live tier would require stored credentials.

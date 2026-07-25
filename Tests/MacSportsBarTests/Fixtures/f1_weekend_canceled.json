@@ -1,0 +1,143 @@
+{
+  "events": [
+    {
+      "id": "600057430",
+      "name": "Gulf Air Bahrain Grand Prix",
+      "shortName": "Gulf Air Bahrain GP",
+      "date": "2026-04-10T11:30Z",
+      "status": {
+        "clock": 0.0,
+        "displayClock": "0:00",
+        "period": 0,
+        "type": {
+          "id": "5",
+          "name": "STATUS_CANCELED",
+          "state": "post",
+          "completed": false,
+          "description": "Canceled",
+          "detail": "Canceled",
+          "shortDetail": "Canceled"
+        }
+      },
+      "circuit": {
+        "fullName": "Bahrain International Circuit",
+        "address": {
+          "city": "Sakhir",
+          "country": "Bahrain"
+        }
+      },
+      "competitions": [
+        {
+          "date": "2026-04-10T11:30Z",
+          "type": {
+            "id": "1",
+            "abbreviation": "FP1"
+          },
+          "status": {
+            "clock": 0.0,
+            "displayClock": "0:00",
+            "period": 0,
+            "type": {
+              "id": "5",
+              "name": "STATUS_CANCELED",
+              "state": "post",
+              "completed": false,
+              "description": "Canceled",
+              "detail": "Canceled",
+              "shortDetail": "Canceled"
+            }
+          },
+          "competitors": []
+        },
+        {
+          "date": "2026-04-10T15:00Z",
+          "type": {
+            "id": "1",
+            "abbreviation": "FP2"
+          },
+          "status": {
+            "clock": 0.0,
+            "displayClock": "0:00",
+            "period": 0,
+            "type": {
+              "id": "5",
+              "name": "STATUS_CANCELED",
+              "state": "post",
+              "completed": false,
+              "description": "Canceled",
+              "detail": "Canceled",
+              "shortDetail": "Canceled"
+            }
+          },
+          "competitors": []
+        },
+        {
+          "date": "2026-04-11T12:30Z",
+          "type": {
+            "id": "1",
+            "abbreviation": "FP3"
+          },
+          "status": {
+            "clock": 0.0,
+            "displayClock": "0:00",
+            "period": 0,
+            "type": {
+              "id": "5",
+              "name": "STATUS_CANCELED",
+              "state": "post",
+              "completed": false,
+              "description": "Canceled",
+              "detail": "Canceled",
+              "shortDetail": "Canceled"
+            }
+          },
+          "competitors": []
+        },
+        {
+          "date": "2026-04-11T16:00Z",
+          "type": {
+            "id": "2",
+            "abbreviation": "Qual"
+          },
+          "status": {
+            "clock": 0.0,
+            "displayClock": "0:00",
+            "period": 0,
+            "type": {
+              "id": "5",
+              "name": "STATUS_CANCELED",
+              "state": "post",
+              "completed": false,
+              "description": "Canceled",
+              "detail": "Canceled",
+              "shortDetail": "Canceled"
+            }
+          },
+          "competitors": []
+        },
+        {
+          "date": "2026-04-12T15:00Z",
+          "type": {
+            "id": "3",
+            "abbreviation": "Race"
+          },
+          "status": {
+            "clock": 0.0,
+            "displayClock": "0:00",
+            "period": 0,
+            "type": {
+              "id": "5",
+              "name": "STATUS_CANCELED",
+              "state": "post",
+              "completed": false,
+              "description": "Canceled",
+              "detail": "Canceled",
+              "shortDetail": "Canceled"
+            }
+          },
+          "competitors": []
+        }
+      ]
+    }
+  ]
+}

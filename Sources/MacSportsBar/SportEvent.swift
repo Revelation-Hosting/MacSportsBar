@@ -42,6 +42,10 @@ struct SportEvent: Identifiable {
     /// drops the least-important leading context (e.g. the race/track name, which the flag glyph
     /// already implies) rather than hard-clipping the important tail. Nil = no compact form.
     var menuShort: String? = nil
+    /// Accent color for the league glyph as an `RRGGBB` hex string (no leading `#`) — Formula 1
+    /// uses the leading/winning driver's constructor colour, so the glyph reads as the team.
+    /// Nil = tint with the menu-bar text color like every other sport.
+    var accentHex: String? = nil
 
     /// Away/home abbreviations + scores and the live detail, so the menu bar can lay out the
     /// logos and scores individually, e.g. `[logo] NY 39 - 42 SA [logo] · 7:01 Q2`.

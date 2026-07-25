@@ -49,6 +49,8 @@ final class AppModel: ObservableObject {
     private var currentMatchup: SportEvent.Matchup?
     /// Current event's racing flag, when it's a live NASCAR race — drives a colored flag glyph.
     private var currentFlag: RaceFlag?
+    /// Current event's accent colour (`RRGGBB`), e.g. an F1 constructor's livery — tints the glyph.
+    private var currentAccentHex: String?
     /// Signature of the last *successfully* rendered menu-bar image. Polls (every 5–10s) and the
     /// cycle tick re-render even when the readout is identical; re-poking the `MenuBarExtra` label
     /// that often makes it flicker/blank, so we skip when nothing visible changed.
@@ -361,6 +363,7 @@ final class AppModel: ObservableObject {
         currentHomeLogo = nil
         currentMatchup = nil
         currentFlag = nil
+        currentAccentHex = nil
         if enabledLeagues.isEmpty {
             menuBarText = "No sports enabled"
             menuBarSymbol = "sportscourt.fill"
@@ -384,6 +387,7 @@ final class AppModel: ObservableObject {
                 currentHomeLogo = chosen.homeLogo
                 currentMatchup = chosen.matchup
                 currentFlag = chosen.flag
+                currentAccentHex = chosen.accentHex
             } else {
                 menuBarSymbol = "sportscourt.fill"
                 menuBarText = (settings.favoritesOnly && settings.hasAnyFavorites)
@@ -413,6 +417,7 @@ final class AppModel: ObservableObject {
         let signature = [
             menuBarText, menuBarSymbol, "\(menuBarColorScheme)",
             currentFlag.map { "\($0)" } ?? "-",
+            currentAccentHex ?? "-",
             awayImage != nil ? (currentAwayLogo?.absoluteString ?? "a") : "-",
             homeImage != nil ? (currentHomeLogo?.absoluteString ?? "h") : "-",
             currentMatchup.map { "\($0.away) \($0.awayScore) \($0.home) \($0.homeScore) \($0.detail)" } ?? "-",
@@ -446,6 +451,16 @@ final class AppModel: ObservableObject {
                     Text(menuBarText)
                 }
             )
+        } else if let accent = currentAccentHex.flatMap(Self.color(hex:)) {
+            // Formula 1: the league glyph carries the leading constructor's livery colour, so the
+            // team reads at a glance (ESPN has no F1 team logos, and bundling constructor marks
+            // into a public repo is a trademark problem).
+            content = AnyView(
+                HStack(spacing: 4) {
+                    Image(systemName: menuBarSymbol).foregroundStyle(accent)
+                    Text(menuBarText)
+                }
+            )
         } else {
             content = AnyView(
                 HStack(spacing: 4) {
@@ -469,6 +484,17 @@ final class AppModel: ObservableObject {
         image.isTemplate = false  // uniform flat look across every sport
         menuBar.image = image
         lastRenderSignature = signature
+    }
+
+    /// Parse an `RRGGBB` hex string (OpenF1 supplies constructor liveries this way) into a
+    /// `Color`, or nil if it isn't six hex digits. Pure — a tested seam.
+    nonisolated static func color(hex: String) -> Color? {
+        let cleaned = hex.hasPrefix("#") ? String(hex.dropFirst()) : hex
+        guard cleaned.count == 6, let value = UInt32(cleaned, radix: 16) else { return nil }
+        return Color(
+            red: Double((value >> 16) & 0xFF) / 255,
+            green: Double((value >> 8) & 0xFF) / 255,
+            blue: Double(value & 0xFF) / 255)
     }
 
     /// SF Symbol + color for a racing flag. A non-nil color paints the flag (green/yellow/red);

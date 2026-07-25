@@ -1,0 +1,268 @@
+{
+  "events": [
+    {
+      "id": "600057439",
+      "name": "Mo\u00ebt & Chandon Belgian Grand Prix",
+      "shortName": "Mo\u00ebt & Chandon Belgian GP",
+      "date": "2026-07-17T11:30Z",
+      "status": {
+        "clock": 0.0,
+        "displayClock": "0:00",
+        "period": 24,
+        "type": {
+          "id": "3",
+          "name": "STATUS_FINAL",
+          "state": "post",
+          "completed": true,
+          "description": "Final",
+          "detail": "Final",
+          "shortDetail": "Final"
+        }
+      },
+      "circuit": {
+        "fullName": "Circuit de Spa-Francorchamps",
+        "address": {
+          "city": "Stavelot",
+          "country": "Belgium"
+        }
+      },
+      "competitions": [
+        {
+          "date": "2026-07-17T11:30Z",
+          "type": {
+            "id": "1",
+            "abbreviation": "FP1"
+          },
+          "status": {
+            "clock": 0.0,
+            "displayClock": "0:00",
+            "period": 24,
+            "type": {
+              "id": "3",
+              "name": "STATUS_FINAL",
+              "state": "post",
+              "completed": true,
+              "description": "Final",
+              "detail": "Final",
+              "shortDetail": "Final"
+            }
+          },
+          "competitors": [
+            {
+              "order": 1,
+              "winner": false,
+              "athlete": {
+                "displayName": "Max Verstappen",
+                "shortName": "M. Verstappen"
+              }
+            },
+            {
+              "order": 2,
+              "winner": false,
+              "athlete": {
+                "displayName": "Lewis Hamilton",
+                "shortName": "L. Hamilton"
+              }
+            },
+            {
+              "order": 3,
+              "winner": false,
+              "athlete": {
+                "displayName": "Charles Leclerc",
+                "shortName": "C. Leclerc"
+              }
+            }
+          ]
+        },
+        {
+          "date": "2026-07-17T15:00Z",
+          "type": {
+            "id": "1",
+            "abbreviation": "FP2"
+          },
+          "status": {
+            "clock": 0.0,
+            "displayClock": "0:00",
+            "period": 18,
+            "type": {
+              "id": "3",
+              "name": "STATUS_FINAL",
+              "state": "post",
+              "completed": true,
+              "description": "Final",
+              "detail": "Final",
+              "shortDetail": "Final"
+            }
+          },
+          "competitors": [
+            {
+              "order": 1,
+              "winner": false,
+              "athlete": {
+                "displayName": "Kimi Antonelli",
+                "shortName": "K. Antonelli"
+              }
+            },
+            {
+              "order": 2,
+              "winner": false,
+              "athlete": {
+                "displayName": "Lando Norris",
+                "shortName": "L. Norris"
+              }
+            },
+            {
+              "order": 3,
+              "winner": false,
+              "athlete": {
+                "displayName": "Max Verstappen",
+                "shortName": "M. Verstappen"
+              }
+            }
+          ]
+        },
+        {
+          "date": "2026-07-18T10:30Z",
+          "type": {
+            "id": "1",
+            "abbreviation": "FP3"
+          },
+          "status": {
+            "clock": 0.0,
+            "displayClock": "0:00",
+            "period": 13,
+            "type": {
+              "id": "3",
+              "name": "STATUS_FINAL",
+              "state": "post",
+              "completed": true,
+              "description": "Final",
+              "detail": "Final",
+              "shortDetail": "Final"
+            }
+          },
+          "competitors": [
+            {
+              "order": 1,
+              "winner": false,
+              "athlete": {
+                "displayName": "Kimi Antonelli",
+                "shortName": "K. Antonelli"
+              }
+            },
+            {
+              "order": 2,
+              "winner": false,
+              "athlete": {
+                "displayName": "Lando Norris",
+                "shortName": "L. Norris"
+              }
+            },
+            {
+              "order": 3,
+              "winner": false,
+              "athlete": {
+                "displayName": "Max Verstappen",
+                "shortName": "M. Verstappen"
+              }
+            }
+          ]
+        },
+        {
+          "date": "2026-07-18T14:00Z",
+          "type": {
+            "id": "2",
+            "abbreviation": "Qual"
+          },
+          "status": {
+            "clock": 0.0,
+            "displayClock": "0:00",
+            "period": 15,
+            "type": {
+              "id": "3",
+              "name": "STATUS_FINAL",
+              "state": "post",
+              "completed": true,
+              "description": "Final",
+              "detail": "Final",
+              "shortDetail": "Final"
+            }
+          },
+          "competitors": [
+            {
+              "order": 1,
+              "winner": false,
+              "athlete": {
+                "displayName": "Kimi Antonelli",
+                "shortName": "K. Antonelli"
+              }
+            },
+            {
+              "order": 2,
+              "winner": false,
+              "athlete": {
+                "displayName": "Max Verstappen",
+                "shortName": "M. Verstappen"
+              }
+            },
+            {
+              "order": 3,
+              "winner": false,
+              "athlete": {
+                "displayName": "Lando Norris",
+                "shortName": "L. Norris"
+              }
+            }
+          ]
+        },
+        {
+          "date": "2026-07-19T13:00Z",
+          "type": {
+            "id": "3",
+            "abbreviation": "Race"
+          },
+          "status": {
+            "clock": 0.0,
+            "displayClock": "0:00",
+            "period": 44,
+            "type": {
+              "id": "3",
+              "name": "STATUS_FINAL",
+              "state": "post",
+              "completed": true,
+              "description": "Final",
+              "detail": "Final",
+              "shortDetail": "Final"
+            }
+          },
+          "competitors": [
+            {
+              "order": 1,
+              "winner": true,
+              "athlete": {
+                "displayName": "Kimi Antonelli",
+                "shortName": "K. Antonelli"
+              }
+            },
+            {
+              "order": 2,
+              "winner": false,
+              "athlete": {
+                "displayName": "Charles Leclerc",
+                "shortName": "C. Leclerc"
+              }
+            },
+            {
+              "order": 3,
+              "winner": false,
+              "athlete": {
+                "displayName": "Max Verstappen",
+                "shortName": "M. Verstappen"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
