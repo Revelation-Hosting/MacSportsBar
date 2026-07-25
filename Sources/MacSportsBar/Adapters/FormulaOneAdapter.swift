@@ -116,8 +116,9 @@ struct FormulaOneAdapter: SportAdapter {
                     isFavorite: isFav, sortPriority: isFav ? 300 : 100,
                     date: start,
                     menuShort: detail,
-                    accentHex: team?.colorHex,
-                    leadLogo: team?.logoURL(season: Self.currentSeason()))
+                    accentHex: team.flatMap { $0.logoURL(season: Self.currentSeason()) == nil ? $0.colorHex : nil },
+                    leadLogo: team?.logoURL(season: Self.currentSeason()),
+                    leadLogoAnchor: name.isEmpty ? nil : name)
 
             default: // "pre"
                 let when = start.map { Self.timeFormatter.string(from: $0) }
@@ -143,6 +144,7 @@ struct FormulaOneAdapter: SportAdapter {
         let flag: RaceFlag?
         let accentHex: String?
         let logo: URL?            // leading driver's constructor mark
+        let leaderTla: String?    // where the mark is anchored in the text
         let isRace: Bool
     }
 
@@ -184,13 +186,17 @@ struct FormulaOneAdapter: SportAdapter {
         if let who { parts.append(who) }
 
         let constructor = leader?.team.map { F1Constructor(name: $0, colorHex: leader?.colour) }
+        let logo = constructor?.logoURL(season: season)
         return LiveReadout(
             grandPrix: grandPrix,
             session: session,
             detail: parts.isEmpty ? "In Progress" : parts.joined(separator: " · "),
             flag: snapshot.flag,
-            accentHex: leader?.colour,
-            logo: constructor?.logoURL(season: season),
+            // Only tint the glyph with the livery when there's no mark to draw — otherwise the
+            // team is stated twice and a checkered flag comes out in team colours.
+            accentHex: logo == nil ? leader?.colour : nil,
+            logo: logo,
+            leaderTla: leader?.tla,
             isRace: isRace)
     }
 
@@ -216,6 +222,7 @@ struct FormulaOneAdapter: SportAdapter {
         event.flag = live.flag
         event.accentHex = live.accentHex
         event.leadLogo = live.logo
+        event.leadLogoAnchor = live.leaderTla
         return event
     }
 
@@ -224,15 +231,17 @@ struct FormulaOneAdapter: SportAdapter {
     nonisolated static func applyFinished(_ live: LiveReadout, to base: SportEvent) -> SportEvent {
         var event = base
         event.state = .final
-        // Drop the lap/clock fragment — only the result matters now.
+        // Drop the lap/clock fragment — only the result matters now — and say plainly that the
+        // session is over, since ESPN will still be claiming it's running.
         let who = live.detail.components(separatedBy: " · ").last ?? live.detail
-        let credit = live.isRace ? "\(who) won" : "\(live.session) · \(who)"
+        let credit = live.isRace ? "\(who) won" : "\(live.session) Finished · P1 \(who)"
         event.displayString = "\(live.grandPrix) · \(credit)"
         event.menuShort = credit
         event.sortPriority = event.isFavorite ? 300 : 100
         event.flag = nil
-        event.accentHex = live.accentHex
+        event.accentHex = nil          // the mark carries the team; a tinted checkered flag is wrong
         event.leadLogo = live.logo
+        event.leadLogoAnchor = live.leaderTla
         return event
     }
 
@@ -249,7 +258,8 @@ struct FormulaOneAdapter: SportAdapter {
             flag: live.flag,
             menuShort: "\(live.session) · \(live.detail)",
             accentHex: live.accentHex,
-            leadLogo: live.logo)
+            leadLogo: live.logo,
+            leadLogoAnchor: live.leaderTla)
     }
 
     // MARK: - Helpers

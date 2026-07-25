@@ -51,8 +51,9 @@ final class AppModel: ObservableObject {
     private var currentFlag: RaceFlag?
     /// Current event's accent colour (`RRGGBB`), e.g. an F1 constructor's livery — tints the glyph.
     private var currentAccentHex: String?
-    /// Single leading-competitor logo (F1 constructor), drawn after the glyph.
+    /// Single leading-competitor logo (F1 constructor) and the text it anchors to.
     private var currentLeadLogo: URL?
+    private var currentLeadLogoAnchor: String?
     /// Signature of the last *successfully* rendered menu-bar image. Polls (every 5–10s) and the
     /// cycle tick re-render even when the readout is identical; re-poking the `MenuBarExtra` label
     /// that often makes it flicker/blank, so we skip when nothing visible changed.
@@ -367,6 +368,7 @@ final class AppModel: ObservableObject {
         currentFlag = nil
         currentAccentHex = nil
         currentLeadLogo = nil
+        currentLeadLogoAnchor = nil
         if enabledLeagues.isEmpty {
             menuBarText = "No sports enabled"
             menuBarSymbol = "sportscourt.fill"
@@ -392,6 +394,7 @@ final class AppModel: ObservableObject {
                 currentFlag = chosen.flag
                 currentAccentHex = chosen.accentHex
                 currentLeadLogo = chosen.leadLogo
+                currentLeadLogoAnchor = chosen.leadLogoAnchor
             } else {
                 menuBarSymbol = "sportscourt.fill"
                 menuBarText = (settings.favoritesOnly && settings.hasAnyFavorites)
@@ -450,7 +453,7 @@ final class AppModel: ObservableObject {
             // Live NASCAR: a *colored* flag glyph (green/yellow/red) keeps its hue; checkered/pace
             // and the text tint with the menu bar below.
             let (symbol, color) = Self.flagGlyph(flag)
-            let split = Self.splitForLeadLogo(menuBarText)
+            let split = Self.splitForLeadLogo(menuBarText, anchor: currentLeadLogoAnchor)
             content = AnyView(
                 HStack(spacing: 4) {
                     if let color { Image(systemName: symbol).foregroundStyle(color) }
@@ -470,7 +473,7 @@ final class AppModel: ObservableObject {
             // Formula 1: the league glyph carries the leading constructor's livery colour, so the
             // team reads at a glance (ESPN has no F1 team logos, and bundling constructor marks
             // into a public repo is a trademark problem).
-            let split = Self.splitForLeadLogo(menuBarText)
+            let split = Self.splitForLeadLogo(menuBarText, anchor: currentLeadLogoAnchor)
             content = AnyView(
                 HStack(spacing: 4) {
                     Image(systemName: menuBarSymbol).foregroundStyle(accent)
@@ -508,10 +511,15 @@ final class AppModel: ObservableObject {
         lastRenderSignature = signature
     }
 
-    /// Where to slot a lead logo into the readout: immediately before the **final** segment, which
-    /// is the competitor the mark identifies (`Hungary GP · Q3 1:52 · ` + logo + `HAM`). Falls back
-    /// to putting everything after the logo when there's no separator. Pure — a tested seam.
-    nonisolated static func splitForLeadLogo(_ text: String) -> (before: String, after: String) {
+    /// Where to slot a lead logo into the readout: immediately before `anchor` — the competitor's
+    /// code — so the mark sits with the name it identifies (`P1 ` + logo + `NOR`, or
+    /// `Hungary GP · ` + logo + `NOR won`). Falls back to the last ` · ` segment when there's no
+    /// anchor, and to the whole string when there's neither. Pure — a tested seam.
+    nonisolated static func splitForLeadLogo(_ text: String, anchor: String? = nil)
+        -> (before: String, after: String) {
+        if let anchor, !anchor.isEmpty, let range = text.range(of: anchor, options: .backwards) {
+            return (String(text[..<range.lowerBound]), String(text[range.lowerBound...]))
+        }
         guard let range = text.range(of: " · ", options: .backwards) else { return ("", text) }
         return (String(text[..<range.lowerBound]) + " · ", String(text[range.upperBound...]))
     }

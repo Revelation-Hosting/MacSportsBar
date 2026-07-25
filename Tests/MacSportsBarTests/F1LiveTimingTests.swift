@@ -113,7 +113,7 @@ final class F1LiveTimingTests: XCTestCase {
         let live = try XCTUnwrap(FormulaOneAdapter.liveReadout(from: snapshot, season: 2026))
         XCTAssertEqual(live.detail, "Q3 · HAM", "Hamilton led Q3 at capture time (team is carried by the mark)")
         XCTAssertEqual(live.grandPrix, "Hungary GP")
-        XCTAssertEqual(live.accentHex, "ED1131", "Ferrari red")
+        XCTAssertNil(live.accentHex, "the Ferrari mark carries the team, so no livery tint")
         XCTAssertEqual(live.logo?.absoluteString.contains("/2026/ferrari/"), true)
     }
 
@@ -189,7 +189,7 @@ final class F1LiveTimingTests: XCTestCase {
             from: liveSnapshot(session: "Race", trackStatus: "4", lap: 32, total: 70)))
         XCTAssertEqual(live.detail, "L32/70 · SC · NOR")
         XCTAssertEqual(live.flag, .safetyCar)
-        XCTAssertEqual(live.accentHex, "F47600")
+        XCTAssertNil(live.accentHex, "mark instead of tint")
         XCTAssertTrue(live.isRace)
     }
 
@@ -262,14 +262,30 @@ final class F1LiveTimingTests: XCTestCase {
 
     // MARK: - Layout: the mark goes beside the driver, and isn't duplicated in text
 
-    func testLeadLogoSplitsBeforeTheFinalSegment() {
-        let split = AppModel.splitForLeadLogo("Hungary GP · Q3 1:52 · NOR")
-        XCTAssertEqual(split.before, "Hungary GP · Q3 1:52 · ")
-        XCTAssertEqual(split.after, "NOR", "the mark sits next to the driver it identifies")
-        // No separator: everything follows the logo rather than vanishing.
-        let bare = AppModel.splitForLeadLogo("NOR")
-        XCTAssertEqual(bare.before, "")
-        XCTAssertEqual(bare.after, "NOR")
+    func testLeadLogoAnchorsToTheDriverCode() {
+        // The mark goes immediately before the driver, even mid-phrase.
+        let quali = AppModel.splitForLeadLogo("Hungary GP · Qualifying Finished · P1 NOR", anchor: "NOR")
+        XCTAssertEqual(quali.before, "Hungary GP · Qualifying Finished · P1 ")
+        XCTAssertEqual(quali.after, "NOR")
+        // A race credit keeps the trailing verb after the mark.
+        let race = AppModel.splitForLeadLogo("Hungary GP · NOR won", anchor: "NOR")
+        XCTAssertEqual(race.before, "Hungary GP · ")
+        XCTAssertEqual(race.after, "NOR won")
+        // No anchor -> fall back to the final segment; no separator either -> all after.
+        XCTAssertEqual(AppModel.splitForLeadLogo("Hungary GP · Q3 · NOR").after, "NOR")
+        XCTAssertEqual(AppModel.splitForLeadLogo("NOR").after, "NOR")
+    }
+
+    func testFinishedSessionDoesNotTintTheGlyphWithTeamColour() throws {
+        // The mark carries the team; tinting the checkered flag orange too is wrong.
+        let live = try XCTUnwrap(FormulaOneAdapter.liveReadout(
+            from: liveSnapshot(session: "Qualifying", trackStatus: "1", phase: 3), season: 2026))
+        let stale = SportEvent(id: "x-Qual", league: f1, state: .live, displayString: "",
+                               isFavorite: false, sortPriority: 800)
+        let done = FormulaOneAdapter.applyFinished(live, to: stale)
+        XCTAssertNil(done.accentHex, "no livery tint when a mark is drawn")
+        XCTAssertNil(done.flag)
+        XCTAssertEqual(done.leadLogoAnchor, "NOR")
     }
 
     func testTeamNameIsOmittedFromTextWhenALogoWillCarryIt() throws {
@@ -307,7 +323,7 @@ final class F1LiveTimingTests: XCTestCase {
 
         let corrected = FormulaOneAdapter.applyFinished(live, to: stale)
         XCTAssertTrue(corrected.isFinal)
-        XCTAssertEqual(corrected.displayString, "Hungary GP · Qualifying · NOR")
+        XCTAssertEqual(corrected.displayString, "Hungary GP · Qualifying Finished · P1 NOR")
         XCTAssertNil(corrected.flag, "a finished session flies no flag")
         XCTAssertNotNil(corrected.leadLogo)
     }

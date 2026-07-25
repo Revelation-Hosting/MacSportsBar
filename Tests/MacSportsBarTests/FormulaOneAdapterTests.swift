@@ -91,7 +91,9 @@ final class FormulaOneAdapterTests: XCTestCase {
         let race = try XCTUnwrap(mapped.first { $0.id.hasSuffix("-Race") })
         XCTAssertEqual(race.displayString, "Belgium GP · Antonelli won (Mercedes)")
         XCTAssertEqual(race.menuShort, "Antonelli won (Mercedes)")
-        XCTAssertEqual(race.accentHex, "00D7B6", "the glyph tints to the winning constructor")
+        XCTAssertNil(race.accentHex, "the constructor mark is drawn instead of tinting the glyph")
+        XCTAssertNotNil(race.leadLogo, "the winning constructor's mark")
+        XCTAssertEqual(race.leadLogoAnchor, "Antonelli", "anchored to the driver")
         XCTAssertTrue(race.isFinal)
     }
 

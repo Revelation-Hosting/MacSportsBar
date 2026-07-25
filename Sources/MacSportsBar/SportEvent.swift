@@ -47,8 +47,11 @@ struct SportEvent: Identifiable {
     /// Nil = tint with the menu-bar text color like every other sport.
     var accentHex: String? = nil
     /// A single logo for the leading competitor, for individual sports that have one team rather
-    /// than a matchup (Formula 1's constructor). Rendered after the league/flag glyph.
+    /// than a matchup (Formula 1's constructor).
     var leadLogo: URL? = nil
+    /// The substring `leadLogo` is drawn immediately before — normally the competitor's code, so
+    /// the mark sits with the name it identifies (`P1 [mark] NOR`, `[mark] NOR won`).
+    var leadLogoAnchor: String? = nil
 
     /// Away/home abbreviations + scores and the live detail, so the menu bar can lay out the
     /// logos and scores individually, e.g. `[logo] NY 39 - 42 SA [logo] · 7:01 Q2`.
