@@ -502,11 +502,15 @@ final class AppModel: ObservableObject {
     /// have no distinct hue). Checkered uses the checkered-flag symbol; the rest a filled flag.
     nonisolated static func flagGlyph(_ flag: RaceFlag) -> (symbol: String, color: Color?) {
         switch flag {
-        case .green:     return ("flag.fill", .green)
-        case .caution:   return ("flag.fill", .yellow)
-        case .red:       return ("flag.fill", .red)
-        case .checkered: return ("flag.checkered", nil)
-        case .warmup:    return ("flag.fill", nil)
+        case .green:            return ("flag.fill", .green)
+        case .caution:          return ("flag.fill", .yellow)
+        // F1 distinguishes a physical safety car from a virtual one — give them distinct glyphs
+        // so a glance tells them apart, both on the yellow that accompanies them.
+        case .safetyCar:        return ("car.fill", .yellow)
+        case .virtualSafetyCar: return ("car.side", .yellow)
+        case .red:              return ("flag.fill", .red)
+        case .checkered:        return ("flag.checkered", nil)
+        case .warmup:           return ("flag.fill", nil)
         }
     }
 

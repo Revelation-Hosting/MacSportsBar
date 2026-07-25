@@ -37,7 +37,7 @@ window), and renders a single menu-bar image.
 | `SportAdapter.swift` | The `SportAdapter` protocol + `LeagueID` (sport/league slug + glyph). |
 | `Adapters/*.swift` | One adapter per data **shape**: `BasketballAdapter`, `BaseballAdapter` (base/out), `GolfAdapter` (leaderboard), `RacingAdapter` (field), `FormulaOneAdapter` (multi-session weekend), and the generic `HeadToHeadAdapter` (`PeriodStyle` = quarters / hockey / soccer). |
 | `SportEvent.swift` | The normalized model — `pre`/`live`/`final` state, `displayString`, optional `matchup`, team-logo URLs, and a `RaceFlag`. |
-| `ESPNClient.swift` / `NASCARClient.swift` / `OpenF1Client.swift` | Thin HTTP chokepoints (timeouts, headers, decoding) so adapters don't reinvent networking. |
+| `ESPNClient.swift` / `NASCARClient.swift` / `OpenF1Client.swift` / `F1LiveTimingClient.swift` | Thin HTTP/WS chokepoints (timeouts, headers, decoding) so adapters don't reinvent networking. |
 | `LeagueCatalog.swift` | The league registry. Adding a league = one `SupportedLeague` entry here. |
 | `AppModel.swift` | `@MainActor` brain: the poll loop, adaptive cadence, ranking, cycling, the favorites window, and the menu-bar render. Also defines `MenuBarPresenter`. |
 | `MacSportsBarApp.swift` | App entry, `MenuBarExtra` scene, the `--smoke-test` path, the accessory (agent) activation policy. |
@@ -145,12 +145,22 @@ stays green and fully hermetic (it runs identically locally and in CI).
   with no live laps/stages/flags). Live telemetry comes from `cf.nascar.com/live/feeds/live-feed.json`
   — and unlike ESPN, NASCAR publishes a [Swagger spec](https://feed.nascar.com/swagger). `RacingAdapter`
   blends ESPN (schedule/final) with NASCAR's feed (live lap/stage/flag/leader).
-- **Formula 1** has a hard ceiling. ESPN reports `liveAvailable: false` / `gameSource: "scrubbed"`
-  for F1 and carries no team data, and [OpenF1](https://openf1.org)'s free tier is *historical
-  only* — anything from a session in progress, or ended under 30 minutes ago, is a paid tier. So F1
-  is schedule + session results, and OpenF1 is used solely for the driver → constructor map, cached
-  for hours. OpenF1's data is CC BY-NC-SA 4.0 (see the README disclaimer); it is unofficial and
-  unaffiliated with Formula 1.
+- **Formula 1** blends three sources. ESPN (`liveAvailable: false`, `gameSource: "scrubbed"`, and
+  no team data at all) supplies the weekend schedule and post-session classifications;
+  **Formula 1's own live timing feed** supplies live state; [OpenF1](https://openf1.org) is a
+  keyless fallback for the constructor map when the live feed is unreachable (its data is
+  CC BY-NC-SA 4.0 — see the README disclaimer — and its own live tier is a paid re-packaging of the
+  same F1 feed, so it is deliberately not used for live).
+  - `livetiming.formula1.com` speaks **SignalR Core** and accepts *unauthenticated* connections for
+    timing topics. `F1LiveTimingClient` connects per poll — negotiate → WebSocket upgrade →
+    handshake → `Subscribe` → read the one completion frame carrying full state → close — rather
+    than holding a socket open. Only `CarData.z` / `Position.z` need a paid F1 TV token, and they
+    are never requested.
+  - **The snapshot lies between sessions**, serving the last session's frozen state indefinitely,
+    so `F1LiveSnapshot.isLive` requires a fresh heartbeat *and* a running session status before
+    anything renders as live.
+  - F1 fronts the feed with an AWS WAF that 403s hosting/VPN egress ranges, so live is strictly an
+    enhancement: any failure degrades silently to the ESPN view.
   - Two ESPN traps `FormulaOneAdapter` guards, both with fixture tests: on a live weekend the
     **event-level status lies** (`STATUS_FINAL` while the race is still scheduled — only the
     per-competition status is trustworthy), and a **cancelled GP reports `state: "post"`** with

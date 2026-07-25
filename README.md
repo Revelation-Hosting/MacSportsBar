@@ -37,7 +37,8 @@ Coca-Cola 600 · L245/400 · St3 · #5 Larson   ← live NASCAR Cup
 > NASCAR, and **Formula 1** — render in the menu bar today, each tagged with a league glyph, on an
 > adaptive poll cadence. (NASCAR shows **live lap/stage/flag telemetry** with a colored flag glyph,
 > sourced from NASCAR's own timing feed — ESPN holds no NASCAR rights, so its feed has none.
-> Formula 1 is **schedule + session results**, not live — see [Formula 1](#formula-1-what-it-does-and-doesnt-show).)
+> Formula 1 is live too — track status, Safety Car/VSC, and the qualifying phase, from F1's own
+> timing feed — see [Formula 1](#formula-1).)
 
 ---
 
@@ -72,39 +73,45 @@ Coca-Cola 600 · L245/400 · St3 · #5 Larson   ← live NASCAR Cup
 | Soccer           | Premier League, UCL, MLS, World Cup | head-to-head | **live (M6 + M13)** |
 | Golf             | PGA                             | leaderboard    | **live (M4)** |
 | Auto racing      | NASCAR Cup                      | field          | **live (M5 + M12: laps/stage/flags)** |
-| Auto racing      | Formula 1                       | sessions       | **live (M14: schedule + results)** |
+| Auto racing      | Formula 1                       | sessions       | **live (M14 + M15: flags/SC/VSC/quali)** |
 
 See the full design in **[menubar-sports-app-spec.md](menubar-sports-app-spec.md)**.
 
-### Formula 1: what it does and doesn't show
+### Formula 1
 
-F1 is the one sport here with a hard data ceiling, so it's worth stating plainly.
-
-**It shows** each Grand Prix weekend's **qualifying and race** — when they start, and who won once
-they're done, with the winner's **constructor** named and the menu-bar glyph tinted to that team's
-livery colour:
+F1 blends two sources: **ESPN** for the weekend schedule and post-session classifications, and
+**Formula 1's own live timing feed** for what's happening on track right now.
 
 ```
-🏁 Hungary GP · Qualifying · Sat 7:00a       ← upcoming session
-🟠 Belgium GP · Qualifying · Norris (McLaren) ← glyph tinted McLaren papaya
-🩵 Belgium GP · Antonelli won (Mercedes)      ← race result
+🏁 Hungary GP · Qualifying · Sat 7:00a          ← upcoming session
+🟠 Hungary GP · Q2 · NOR (McLaren)              ← live qualifying, glyph in McLaren papaya
+🚗 Hungary GP · L32/70 · SC · VER (Red Bull)    ← live race under Safety Car
+🩵 Belgium GP · Antonelli won (Mercedes)        ← result
 ```
 
-Practice sessions are skipped deliberately — they'd triple the rotation for results nobody glances
-at a menu bar for.
+Live state comes from `livetiming.formula1.com` over SignalR, which — usefully — accepts
+**unauthenticated** connections for timing topics: track status (green / yellow / **Safety Car** /
+**VSC** / red), running order, lap count, and the qualifying phase. Safety Car and VSC get distinct
+glyphs, because at a glance they mean different things. The driver's constructor and livery colour
+come from the same feed, so the menu-bar glyph is tinted to the leading team.
 
-**It does not show live session data** — no live positions, no flags, no safety car or VSC, no
-Q1/Q2/Q3 clock. That isn't an oversight:
+Only car telemetry and track position (`CarData.z` / `Position.z`) sit behind a paid F1 TV token,
+and the app never requests them. Practice sessions are skipped deliberately — they'd triple the
+rotation for results nobody glances at a menu bar for.
 
-- **ESPN** reports `liveAvailable: false` and `gameSource: "scrubbed"` for F1 — classifications
-  appear *after* a session, not during it — and carries no constructor data at all.
-- **OpenF1** *does* have all of it (flags, safety car, VSC, sector yellows, qualifying phases), but
-  its free tier is **historical only**: anything from a session in progress, or ended less than 30
-  minutes ago, requires a paid subscription. MacSportsBar stays keyless, so it uses only the free
-  tier — for the driver → constructor mapping, cached for hours (a handful of requests per day,
-  well inside OpenF1's free budget of 30 requests/minute).
+Two honest caveats:
 
-Contrast with NASCAR, which *is* live here, because NASCAR publishes its live timing feed openly.
+- **Some networks can't reach the feed.** F1 fronts it with an AWS WAF that rejects hosting and
+  VPN egress ranges with a 403. If you're on a VPN, corporate network, or iCloud Private Relay,
+  live F1 will silently degrade to the ESPN schedule + results view — which is why the live path is
+  strictly an enhancement and never a hard dependency. (Excluding `livetiming.formula1.com` from
+  your VPN's tunnel fixes it.)
+- **The feed serves stale state between sessions**, returning the last session's frozen snapshot
+  indefinitely, so the app refuses to render it as live unless the feed's own heartbeat is fresh
+  *and* the session reports as running.
+
+The connect-per-poll approach (negotiate → subscribe → read one snapshot → close, well under a
+second) keeps this a low-volume, well-behaved client on an undocumented endpoint.
 
 ---
 
@@ -162,7 +169,7 @@ General ▸ Login Items** to start it at login.
 
 ## Tests
 
-The deterministic model and formatting logic is covered by **154 hermetic XCTest cases** —
+The deterministic model and formatting logic is covered by **169 hermetic XCTest cases** —
 every adapter's decode → format path (basketball; baseball with base/out state; the generic
 head-to-head adapter for football, hockey, and soccer; the golf leaderboard; NASCAR's ESPN
 baseline; and the NASCAR live-feed mapping with its flag-state enum), period/inning labels,
@@ -213,9 +220,12 @@ A small, isolated-adapter architecture so a breaking upstream change is a one-fi
   blends two sources: ESPN for the schedule/final, NASCAR's feed to enrich a live race. Handy
   bonus — NASCAR publishes a [Swagger spec](https://feed.nascar.com/swagger), so its field
   names and enums are documented rather than reverse-engineered.
-- `OpenF1Client` — a third chokepoint, used only for the Formula 1 driver → constructor mapping
-  (ESPN carries no F1 team data). Deliberately reads only OpenF1's **free historical tier** and
-  caches for hours; see [Formula 1](#formula-1-what-it-does-and-doesnt-show).
+- `OpenF1Client` — a third chokepoint, a keyless fallback for the F1 driver → constructor mapping
+  when the live feed is unreachable (ESPN carries no F1 team data). Reads only OpenF1's free
+  historical tier and caches for hours.
+- `F1LiveTimingClient` — a fourth, speaking SignalR Core over a WebSocket to Formula 1's own live
+  timing feed for track status, running order, lap count and the qualifying phase; see
+  [Formula 1](#formula-1).
 
 Polling is adaptive and deliberately gentle: slow (every 5 min) when nothing is live, fast
 (5–10s) when a relevant event is in progress — and it **ramps up as a favorite's scheduled
@@ -258,15 +268,20 @@ and polling policy are in [menubar-sports-app-spec.md](menubar-sports-app-spec.m
   adapter untouched — a pure league registration. Lands in time for the 2026 tournament. ✅ **done**
 - **M14** — **Formula 1** (`racing/f1`): one entry per notable session (qualifying, sprint, race)
   with the winner's constructor and a livery-tinted glyph. Guards two ESPN traps — the event-level
-  status lies on a live weekend, and a cancelled GP reports `state: "post"`. Schedule + results
-  only; live F1 is paywalled. ✅ **done**
+  status lies on a live weekend, and a cancelled GP reports `state: "post"`. ✅ **done**
+- **M15** — **Live F1 timing** from Formula 1's own feed (`livetiming.formula1.com`, SignalR Core,
+  unauthenticated): track status with distinct **Safety Car** and **VSC** glyphs, live running
+  order with constructor livery, lap count, and the Q1/Q2/Q3 phase. Gated on a fresh heartbeat so
+  the feed's between-sessions stale snapshot never renders as live, and degrades silently to the
+  ESPN view on WAF-blocked networks. ✅ **done**
 
 ---
 
 ## Disclaimer
 
 This project pulls scores from **public sports data endpoints that are not officially
-supported for third-party use** (ESPN's, NASCAR's own timing feed, and OpenF1). Those endpoints can
+supported for third-party use** (ESPN's, NASCAR's and Formula 1's own timing feeds, and OpenF1).
+Those endpoints can
 change shape or disappear without notice, and this project is **not affiliated with, endorsed
 by, or sponsored by** any data provider, league, team, or broadcaster.
 

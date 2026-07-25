@@ -28,13 +28,32 @@ struct FormulaOneAdapter: SportAdapter {
     var constructors: @Sendable () async -> [String: F1Constructor] = {
         await OpenF1ConstructorDirectory.shared.constructors()
     }
+    /// F1's own live timing feed, consulted only for today. Returns nil when the session isn't
+    /// live or the feed is unreachable (some networks are WAF-blocked) — F1 then degrades to
+    /// ESPN's schedule + results, exactly as it did before live support existed.
+    var liveSnapshot: @Sendable () async -> F1LiveSnapshot? = {
+        try? await F1LiveTimingClient().snapshot()
+    }
 
     func fetch(using client: ESPNClient, dates: String?) async throws -> [SportEvent] {
         let payload = try await client.scoreboard(
             sport: league.sport, league: league.league, dates: dates, as: Scoreboard.self
         )
         let teams = await constructors()
-        return (payload.events ?? []).flatMap { map($0, constructors: teams) }
+        var events = (payload.events ?? []).flatMap { map($0, constructors: teams) }
+
+        // Live only concerns today's sessions, so skip it for adjacent-day window fetches.
+        guard dates == nil, let snapshot = await liveSnapshot(), snapshot.isLive() else { return events }
+        guard let live = Self.liveReadout(from: snapshot) else { return events }
+
+        // Replace the matching scheduled session with the live one; if ESPN hasn't listed it
+        // (its F1 status lags badly), surface the live session on its own.
+        if let index = events.firstIndex(where: { Self.matches(event: $0, live: live) }) {
+            events[index] = Self.applyLive(live, to: events[index])
+        } else {
+            events.append(Self.liveEvent(live, league: league))
+        }
+        return events
     }
 
     // MARK: - Mapping
@@ -99,6 +118,86 @@ struct FormulaOneAdapter: SportAdapter {
                     menuShort: detail)
             }
         }
+    }
+
+    // MARK: - Live timing (F1's own feed)
+
+    /// The live readout distilled from an F1 live-timing snapshot.
+    struct LiveReadout {
+        let grandPrix: String     // "Hungary GP"
+        let session: String       // "Qualifying" / "Race" / "Practice 2"
+        let detail: String        // "Q2 · SC · NOR (McLaren)" / "L32/70 · VER (Red Bull)"
+        let flag: RaceFlag?
+        let accentHex: String?
+        let isRace: Bool
+    }
+
+    /// Turn a live snapshot into a readout. Returns nil if the snapshot has no usable session
+    /// identity. Callers must have already checked `snapshot.isLive()`. Pure — a tested seam.
+    nonisolated static func liveReadout(from snapshot: F1LiveSnapshot) -> LiveReadout? {
+        guard let session = snapshot.sessionName else { return nil }
+        let grandPrix = snapshot.countryName.map { "\($0) GP" }
+            ?? snapshot.meetingName ?? "Grand Prix"
+        let isRace = session.lowercased().contains("race")
+
+        // Leader + constructor, straight from the feed (DriverList carries both).
+        let drivers = snapshot.drivers
+        let leader = snapshot.leaderNumber.flatMap { drivers[$0] }
+        let who = leader.map { entry -> String in
+            entry.team.map { "\(entry.tla) (\($0))" } ?? entry.tla
+        }
+
+        var parts: [String] = []
+        // Races count laps; qualifying counts phases.
+        if isRace, let lap = snapshot.currentLap {
+            parts.append(snapshot.totalLaps.map { "L\(lap)/\($0)" } ?? "L\(lap)")
+        } else if let phase = snapshot.qualifyingPhase, session.lowercased().contains("qual") {
+            parts.append("Q\(phase)")
+        }
+        if let label = snapshot.flag?.shortLabel { parts.append(label) }
+        if let who { parts.append(who) }
+
+        return LiveReadout(
+            grandPrix: grandPrix,
+            session: session,
+            detail: parts.isEmpty ? "In Progress" : parts.joined(separator: " · "),
+            flag: snapshot.flag,
+            accentHex: leader?.colour,
+            isRace: isRace)
+    }
+
+    /// Whether an ESPN-derived event is the same session the live feed is reporting.
+    nonisolated static func matches(event: SportEvent, live: LiveReadout) -> Bool {
+        let suffix = live.isRace ? "-Race" : (live.session.lowercased().contains("qual") ? "-Qual" : nil)
+        guard let suffix else { return false }
+        return event.id.hasSuffix(suffix)
+    }
+
+    /// Overlay live state onto the ESPN session event, keeping its id and date.
+    nonisolated static func applyLive(_ live: LiveReadout, to base: SportEvent) -> SportEvent {
+        var event = base
+        event.state = .live
+        event.displayString = "\(live.grandPrix) · \(live.detail)"
+        event.menuShort = live.detail
+        event.sortPriority = event.isFavorite ? 1000 : 800
+        event.flag = live.flag
+        event.accentHex = live.accentHex
+        return event
+    }
+
+    /// A standalone event for a live session ESPN hasn't caught up to (practice, or its lagging
+    /// F1 status). Not marked favorite — the followed-series promotion handles that.
+    nonisolated static func liveEvent(_ live: LiveReadout, league: LeagueID) -> SportEvent {
+        SportEvent(
+            id: "f1-live-\(live.session)",
+            league: league,
+            state: .live,
+            displayString: "\(live.grandPrix) · \(live.session) · \(live.detail)",
+            isFavorite: false,
+            sortPriority: 800,
+            flag: live.flag,
+            menuShort: "\(live.session) · \(live.detail)",
+            accentHex: live.accentHex)
     }
 
     // MARK: - Helpers

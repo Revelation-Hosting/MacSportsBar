@@ -68,11 +68,13 @@ extension SportEvent {
 /// official spec (https://feed.nascar.com/swagger): 1-Green, 2-Yellow, 3-Red, 4-Finish,
 /// 6-Stop, 8-Warm Up, 9-Not Active. Drives the menu-bar flag glyph + color.
 enum RaceFlag {
-    case green       // 1 — racing under green
-    case caution     // 2 — yellow / caution
-    case red         // 3 Red, 6 Stop — session stopped on track
-    case checkered   // 4 — Finish
-    case warmup      // 8 — pace / formation laps before green
+    case green            // 1 — racing under green
+    case caution          // 2 — yellow / caution
+    case safetyCar        // physical safety car on track (F1)
+    case virtualSafetyCar // VSC — the field is speed-limited but the car stays in the pits (F1)
+    case red              // 3 Red, 6 Stop — session stopped on track
+    case checkered        // 4 — Finish
+    case warmup           // 8 — pace / formation laps before green
 
     /// Map the feed's `flag_state`; returns nil for 9-Not Active or anything unknown (no flag).
     init?(flagState: Int?) {
@@ -83,6 +85,33 @@ enum RaceFlag {
         case 4: self = .checkered
         case 8: self = .warmup
         default: return nil   // 9-Not Active / absent / unknown
+        }
+    }
+
+    /// Map Formula 1's `TrackStatus.Status` (F1 live timing sends it as a numeric *string*).
+    /// F1 distinguishes a physical safety car from a virtual one, which NASCAR's feed does not.
+    /// Returns nil for anything unrecognized, so the caller falls back to no flag.
+    init?(trackStatus: String?) {
+        switch trackStatus {
+        case "1": self = .green            // AllClear
+        case "2": self = .caution          // Yellow
+        case "4": self = .safetyCar        // SCDeployed
+        case "5": self = .red              // Red
+        case "6", "7": self = .virtualSafetyCar  // VSCDeployed / VSCEnding
+        default: return nil
+        }
+    }
+
+    /// Short label for the menu bar, or nil when the flag needs no words (green racing).
+    var shortLabel: String? {
+        switch self {
+        case .green: return nil
+        case .caution: return "Yellow"
+        case .safetyCar: return "SC"
+        case .virtualSafetyCar: return "VSC"
+        case .red: return "RED"
+        case .checkered: return nil
+        case .warmup: return "Pace"
         }
     }
 }
