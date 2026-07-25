@@ -449,48 +449,28 @@ final class AppModel: ObservableObject {
                     if !matchup.detail.isEmpty { Text("· \(matchup.detail)") }
                 }
             )
-        } else if let flag = currentFlag {
-            // Live NASCAR: a *colored* flag glyph (green/yellow/red) keeps its hue; checkered/pace
-            // and the text tint with the menu bar below.
-            let (symbol, color) = Self.flagGlyph(flag)
-            let split = Self.splitForLeadLogo(menuBarText, anchor: currentLeadLogoAnchor)
-            content = AnyView(
-                HStack(spacing: 4) {
-                    if let color { Image(systemName: symbol).foregroundStyle(color) }
-                    else { Image(systemName: symbol) }
-                    if let leadImage {
-                        // The constructor mark belongs next to the driver it identifies, not ahead
-                        // of the track name.
-                        Text(split.before)
-                        Image(nsImage: leadImage).resizable().scaledToFit().frame(width: 15, height: 15)
-                        Text(split.after)
-                    } else {
-                        Text(menuBarText)
-                    }
-                }
-            )
-        } else if let accent = currentAccentHex.flatMap(Self.color(hex:)) {
-            // Formula 1: the league glyph carries the leading constructor's livery colour, so the
-            // team reads at a glance (ESPN has no F1 team logos, and bundling constructor marks
-            // into a public repo is a trademark problem).
-            let split = Self.splitForLeadLogo(menuBarText, anchor: currentLeadLogoAnchor)
-            content = AnyView(
-                HStack(spacing: 4) {
-                    Image(systemName: menuBarSymbol).foregroundStyle(accent)
-                    if let leadImage {
-                        Text(split.before)
-                        Image(nsImage: leadImage).resizable().scaledToFit().frame(width: 15, height: 15)
-                        Text(split.after)
-                    } else {
-                        Text(menuBarText)
-                    }
-                }
-            )
         } else {
+            // ONE layout for every non-matchup readout: a glyph, then the text with an optional
+            // lead mark anchored inside it. The glyph is a coloured racing flag when there's a
+            // flag state, otherwise the league glyph — tinted to an accent colour only when no
+            // mark is drawn (a mark already identifies the team; doing both states it twice).
+            //
+            // Deliberately a single branch: this was three near-identical ones, and a readout
+            // that shifted between them silently lost its logo. Twice.
+            let glyph: (symbol: String, color: Color?) = currentFlag.map(Self.flagGlyph)
+                ?? (menuBarSymbol, currentAccentHex.flatMap(Self.color(hex:)))
+            let split = Self.splitForLeadLogo(menuBarText, anchor: currentLeadLogoAnchor)
             content = AnyView(
                 HStack(spacing: 4) {
-                    Image(systemName: menuBarSymbol)
-                    Text(menuBarText)
+                    if let color = glyph.color { Image(systemName: glyph.symbol).foregroundStyle(color) }
+                    else { Image(systemName: glyph.symbol) }
+                    if let leadImage {
+                        if !split.before.isEmpty { Text(split.before) }
+                        Image(nsImage: leadImage).resizable().scaledToFit().frame(width: 15, height: 15)
+                        Text(split.after)
+                    } else {
+                        Text(menuBarText)
+                    }
                 }
             )
         }
