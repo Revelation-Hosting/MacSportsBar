@@ -51,6 +51,8 @@ final class AppModel: ObservableObject {
     private var currentFlag: RaceFlag?
     /// Current event's accent colour (`RRGGBB`), e.g. an F1 constructor's livery — tints the glyph.
     private var currentAccentHex: String?
+    /// Single leading-competitor logo (F1 constructor), drawn after the glyph.
+    private var currentLeadLogo: URL?
     /// Signature of the last *successfully* rendered menu-bar image. Polls (every 5–10s) and the
     /// cycle tick re-render even when the readout is identical; re-poking the `MenuBarExtra` label
     /// that often makes it flicker/blank, so we skip when nothing visible changed.
@@ -364,6 +366,7 @@ final class AppModel: ObservableObject {
         currentMatchup = nil
         currentFlag = nil
         currentAccentHex = nil
+        currentLeadLogo = nil
         if enabledLeagues.isEmpty {
             menuBarText = "No sports enabled"
             menuBarSymbol = "sportscourt.fill"
@@ -388,6 +391,7 @@ final class AppModel: ObservableObject {
                 currentMatchup = chosen.matchup
                 currentFlag = chosen.flag
                 currentAccentHex = chosen.accentHex
+                currentLeadLogo = chosen.leadLogo
             } else {
                 menuBarSymbol = "sportscourt.fill"
                 menuBarText = (settings.favoritesOnly && settings.hasAnyFavorites)
@@ -410,6 +414,7 @@ final class AppModel: ObservableObject {
     private func renderMenuBarImage() {
         let awayImage = settings.showTeamLogos ? logos.image(for: currentAwayLogo) : nil
         let homeImage = settings.showTeamLogos ? logos.image(for: currentHomeLogo) : nil
+        let leadImage = settings.showTeamLogos ? logos.image(for: currentLeadLogo) : nil
 
         // Skip when the visible output would be identical to the last render — avoids re-poking
         // the menu bar (and the flicker that causes) on every poll/cycle tick. Captures every
@@ -418,6 +423,7 @@ final class AppModel: ObservableObject {
             menuBarText, menuBarSymbol, "\(menuBarColorScheme)",
             currentFlag.map { "\($0)" } ?? "-",
             currentAccentHex ?? "-",
+            leadImage != nil ? (currentLeadLogo?.absoluteString ?? "l") : "-",
             awayImage != nil ? (currentAwayLogo?.absoluteString ?? "a") : "-",
             homeImage != nil ? (currentHomeLogo?.absoluteString ?? "h") : "-",
             currentMatchup.map { "\($0.away) \($0.awayScore) \($0.home) \($0.homeScore) \($0.detail)" } ?? "-",
@@ -504,10 +510,11 @@ final class AppModel: ObservableObject {
         switch flag {
         case .green:            return ("flag.fill", .green)
         case .caution:          return ("flag.fill", .yellow)
-        // F1 distinguishes a physical safety car from a virtual one — give them distinct glyphs
-        // so a glance tells them apart, both on the yellow that accompanies them.
-        case .safetyCar:        return ("car.fill", .yellow)
-        case .virtualSafetyCar: return ("car.side", .yellow)
+        // A safety car — physical or virtual — flies yellow. Keep the same yellow flag as any
+        // other caution and let the readout's "SC" / "VSC" say which it is, rather than asking a
+        // 22px car glyph to carry that distinction.
+        case .safetyCar:        return ("flag.fill", .yellow)
+        case .virtualSafetyCar: return ("flag.fill", .yellow)
         case .red:              return ("flag.fill", .red)
         case .checkered:        return ("flag.checkered", nil)
         case .warmup:           return ("flag.fill", nil)

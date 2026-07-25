@@ -14,11 +14,12 @@ import Foundation
 /// 2. **`STATUS_CANCELED` is `state: "post"`** with `completed: false`, so the usual
 ///    `state == "post" → final` rule would render a cancelled Grand Prix as a finished race.
 ///
-/// ⚠️ **No live telemetry, by design.** ESPN reports `liveAvailable: false` and
-/// `gameSource: "scrubbed"` for F1 — classifications appear after a session, not during it — and
-/// OpenF1's live tier (flags, safety car, VSC, the qualifying clock) is a paid subscription. So
-/// this shows the schedule and each session's result, and never claims a live readout.
-/// Constructors come from `OpenF1Client` (ESPN has no team data for F1 at all).
+/// ESPN alone can't show a session in progress (`liveAvailable: false`, `gameSource: "scrubbed"` —
+/// classifications land *after* a session) and carries no team data at all, so live state comes
+/// from `F1LiveTimingClient` — Formula 1's own feed, which serves timing topics unauthenticated.
+/// That's an enhancement, never a dependency: if the feed is unreachable (its WAF rejects some
+/// networks) or the session isn't running, this degrades to ESPN's schedule + results.
+/// `OpenF1Client` supplies constructors for those ESPN-only results.
 struct FormulaOneAdapter: SportAdapter {
     let league: LeagueID
     /// Lowercased favorite driver names. Empty = no favorites.
@@ -104,7 +105,8 @@ struct FormulaOneAdapter: SportAdapter {
                     isFavorite: isFav, sortPriority: isFav ? 300 : 100,
                     date: start,
                     menuShort: detail,
-                    accentHex: team?.colorHex)
+                    accentHex: team?.colorHex,
+                    leadLogo: team?.logoURL(season: Self.currentSeason()))
 
             default: // "pre"
                 let when = start.map { Self.timeFormatter.string(from: $0) }
@@ -129,12 +131,14 @@ struct FormulaOneAdapter: SportAdapter {
         let detail: String        // "Q2 · SC · NOR (McLaren)" / "L32/70 · VER (Red Bull)"
         let flag: RaceFlag?
         let accentHex: String?
+        let logo: URL?            // leading driver's constructor mark
         let isRace: Bool
     }
 
     /// Turn a live snapshot into a readout. Returns nil if the snapshot has no usable session
     /// identity. Callers must have already checked `snapshot.isLive()`. Pure — a tested seam.
-    nonisolated static func liveReadout(from snapshot: F1LiveSnapshot) -> LiveReadout? {
+    nonisolated static func liveReadout(from snapshot: F1LiveSnapshot,
+                                        season: Int = Self.currentSeason()) -> LiveReadout? {
         guard let session = snapshot.sessionName else { return nil }
         let grandPrix = snapshot.countryName.map { "\($0) GP" }
             ?? snapshot.meetingName ?? "Grand Prix"
@@ -157,13 +161,20 @@ struct FormulaOneAdapter: SportAdapter {
         if let label = snapshot.flag?.shortLabel { parts.append(label) }
         if let who { parts.append(who) }
 
+        let constructor = leader?.team.map { F1Constructor(name: $0, colorHex: leader?.colour) }
         return LiveReadout(
             grandPrix: grandPrix,
             session: session,
             detail: parts.isEmpty ? "In Progress" : parts.joined(separator: " · "),
             flag: snapshot.flag,
             accentHex: leader?.colour,
+            logo: constructor?.logoURL(season: season),
             isRace: isRace)
+    }
+
+    /// The season F1's logo CDN is publishing under. Pure — a tested seam.
+    nonisolated static func currentSeason(now: Date = Date()) -> Int {
+        Calendar(identifier: .gregorian).component(.year, from: now)
     }
 
     /// Whether an ESPN-derived event is the same session the live feed is reporting.
@@ -182,6 +193,7 @@ struct FormulaOneAdapter: SportAdapter {
         event.sortPriority = event.isFavorite ? 1000 : 800
         event.flag = live.flag
         event.accentHex = live.accentHex
+        event.leadLogo = live.logo
         return event
     }
 
@@ -197,7 +209,8 @@ struct FormulaOneAdapter: SportAdapter {
             sortPriority: 800,
             flag: live.flag,
             menuShort: "\(live.session) · \(live.detail)",
-            accentHex: live.accentHex)
+            accentHex: live.accentHex,
+            leadLogo: live.logo)
     }
 
     // MARK: - Helpers

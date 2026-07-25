@@ -96,10 +96,11 @@ final class F1LiveTimingTests: XCTestCase {
         XCTAssertNil(RaceFlag(trackStatus: nil))
     }
 
-    func testSafetyCarAndVSCHaveDistinctGlyphs() {
-        // A glance must tell a physical safety car from a virtual one.
-        XCTAssertNotEqual(AppModel.flagGlyph(.safetyCar).symbol,
-                          AppModel.flagGlyph(.virtualSafetyCar).symbol)
+    func testSafetyCarAndVSCFlyTheYellowFlagAndAreNamedInText() {
+        // Both are cautions, so both show the same yellow flag as any other caution — the
+        // readout's "SC" / "VSC" carries the distinction, not the glyph.
+        XCTAssertEqual(AppModel.flagGlyph(.safetyCar).symbol, AppModel.flagGlyph(.caution).symbol)
+        XCTAssertEqual(AppModel.flagGlyph(.virtualSafetyCar).symbol, AppModel.flagGlyph(.caution).symbol)
         XCTAssertNotNil(AppModel.flagGlyph(.safetyCar).color)
         XCTAssertNotNil(AppModel.flagGlyph(.virtualSafetyCar).color)
         XCTAssertEqual(RaceFlag.safetyCar.shortLabel, "SC")
@@ -165,6 +166,38 @@ final class F1LiveTimingTests: XCTestCase {
         XCTAssertEqual(applied.id, "600057440-Race", "keeps ESPN's id so notifications track it")
         XCTAssertEqual(applied.displayString, "Hungary GP · L5/70 · NOR (McLaren)")
         XCTAssertEqual(applied.sortPriority, 1000, "a live favorite outranks everything")
+    }
+
+    // MARK: - Constructor logos (hotlinked from F1's own CDN)
+
+    func testConstructorLogoURLsForTheWholeGrid() {
+        // The slug is the team name lowercased with spaces stripped; verified against F1's CDN
+        // for all eleven 2026 constructors.
+        let expected: [String: String] = [
+            "McLaren": "mclaren", "Ferrari": "ferrari", "Red Bull Racing": "redbullracing",
+            "Mercedes": "mercedes", "Aston Martin": "astonmartin", "Alpine": "alpine",
+            "Williams": "williams", "Racing Bulls": "racingbulls", "Haas F1 Team": "haasf1team",
+            "Audi": "audi", "Cadillac": "cadillac",
+        ]
+        for (team, slug) in expected {
+            let url = F1Constructor(name: team, colorHex: nil).logoURL(season: 2026)
+            let string = try? XCTUnwrap(url?.absoluteString)
+            XCTAssertEqual(string, "https://media.formula1.com/image/upload/c_fit,w_44/f_png/"
+                           + "q_auto/common/f1/2026/\(slug)/2026\(slug)logo.webp",
+                           "wrong URL for \(team)")
+        }
+        XCTAssertNil(F1Constructor(name: "", colorHex: nil).logoURL(season: 2026))
+    }
+
+    func testLiveReadoutCarriesTheConstructorLogo() throws {
+        let live = try XCTUnwrap(FormulaOneAdapter.liveReadout(
+            from: liveSnapshot(session: "Race", trackStatus: "1", lap: 5, total: 70), season: 2026))
+        XCTAssertEqual(live.logo?.absoluteString.contains("/2026/mclaren/2026mclarenlogo.webp"), true)
+
+        let scheduled = SportEvent(id: "x-Race", league: f1, state: .pre(startDate: nil),
+                                   displayString: "", isFavorite: false, sortPriority: 0)
+        XCTAssertNotNil(FormulaOneAdapter.applyLive(live, to: scheduled).leadLogo,
+                        "the overlay carries the logo through to the menu bar")
     }
 
     // MARK: - SignalR envelope

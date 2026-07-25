@@ -85,15 +85,16 @@ F1 blends two sources: **ESPN** for the weekend schedule and post-session classi
 ```
 🏁 Hungary GP · Qualifying · Sat 7:00a          ← upcoming session
 🟠 Hungary GP · Q2 · NOR (McLaren)              ← live qualifying, glyph in McLaren papaya
-🚗 Hungary GP · L32/70 · SC · VER (Red Bull)    ← live race under Safety Car
+🟡 Hungary GP · L32/70 · SC · VER (Red Bull)    ← live race under Safety Car
 🩵 Belgium GP · Antonelli won (Mercedes)        ← result
 ```
 
 Live state comes from `livetiming.formula1.com` over SignalR, which — usefully — accepts
 **unauthenticated** connections for timing topics: track status (green / yellow / **Safety Car** /
-**VSC** / red), running order, lap count, and the qualifying phase. Safety Car and VSC get distinct
-glyphs, because at a glance they mean different things. The driver's constructor and livery colour
-come from the same feed, so the menu-bar glyph is tinted to the leading team.
+**VSC** / red), running order, lap count, and the qualifying phase. A safety car — physical or
+virtual — flies the same yellow flag as any caution, with `SC` / `VSC` in the readout saying which.
+The leading driver's **constructor logo** is hotlinked from F1's own CDN and drawn next to the flag,
+so you can see at a glance who's in front.
 
 Only car telemetry and track position (`CarData.z` / `Position.z`) sit behind a paid F1 TV token,
 and the app never requests them. Practice sessions are skipped deliberately — they'd triple the
@@ -169,7 +170,7 @@ General ▸ Login Items** to start it at login.
 
 ## Tests
 
-The deterministic model and formatting logic is covered by **169 hermetic XCTest cases** —
+The deterministic model and formatting logic is covered by **171 hermetic XCTest cases** —
 every adapter's decode → format path (basketball; baseball with base/out state; the generic
 head-to-head adapter for football, hockey, and soccer; the golf leaderboard; NASCAR's ESPN
 baseline; and the NASCAR live-feed mapping with its flag-state enum), period/inning labels,

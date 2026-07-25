@@ -1,12 +1,25 @@
 import Foundation
 
-/// A Formula 1 constructor (team) as the menu bar needs it: the name to print and the team's
-/// livery colour to tint the glyph with.
+/// A Formula 1 constructor (team) as the menu bar needs it: the name to print, the team's livery
+/// colour, and its logo.
 struct F1Constructor: Equatable {
     /// e.g. `McLaren`, `Red Bull Racing`.
     let name: String
-    /// `RRGGBB` hex, no leading `#` — OpenF1's `team_colour`.
+    /// `RRGGBB` hex, no leading `#` — the feed's team colour.
     let colorHex: String?
+
+    /// The constructor's mark on Formula 1's own CDN, **hotlinked** at display time exactly like
+    /// every other league's team logos (ESPN's, for the ball sports) — nothing is redistributed.
+    /// Served as a transparent PNG rendered from an SVG master, so it stays crisp at any size.
+    ///
+    /// The slug is the team name lowercased with spaces removed, which covers the whole grid
+    /// (`Red Bull Racing` → `redbullracing`, `Haas F1 Team` → `haasf1team`). Pure — a tested seam.
+    func logoURL(season: Int, width: Int = 44) -> URL? {
+        let slug = name.lowercased().filter { !$0.isWhitespace }
+        guard !slug.isEmpty else { return nil }
+        return URL(string: "https://media.formula1.com/image/upload/c_fit,w_\(width)"
+                   + "/f_png/q_auto/common/f1/\(season)/\(slug)/\(season)\(slug)logo.webp")
+    }
 }
 
 /// Thin client for the **OpenF1** API (https://openf1.org), used only for what its *free* tier
