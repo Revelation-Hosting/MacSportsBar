@@ -117,6 +117,32 @@ final class F1LiveTimingTests: XCTestCase {
         XCTAssertEqual(live.logo?.absoluteString.contains("/2026/ferrari/"), true)
     }
 
+    // MARK: - Session clock (ExtrapolatedClock)
+
+    func testFormatsRemainingClock() {
+        // The feed sends HH:MM:SS; trim the dead hour so it reads like a session clock.
+        XCTAssertEqual(F1LiveSnapshot.formatRemaining("00:01:52"), "1:52")
+        XCTAssertEqual(F1LiveSnapshot.formatRemaining("00:18:00"), "18:00")
+        XCTAssertEqual(F1LiveSnapshot.formatRemaining("01:30:00"), "1:30:00", "races keep the hour")
+        XCTAssertNil(F1LiveSnapshot.formatRemaining("00:00:00"), "expired clock shows nothing")
+        XCTAssertNil(F1LiveSnapshot.formatRemaining(nil))
+        XCTAssertNil(F1LiveSnapshot.formatRemaining("garbage"))
+    }
+
+    func testQualifyingReadoutIncludesPhaseAndClock() throws {
+        var raw = liveSnapshot(session: "Qualifying", trackStatus: "1", phase: 3).raw
+        raw["ExtrapolatedClock"] = ["Remaining": "00:01:52", "Extrapolating": true]
+        let live = try XCTUnwrap(FormulaOneAdapter.liveReadout(from: F1LiveSnapshot(raw: raw), season: 2026))
+        XCTAssertEqual(live.detail, "Q3 1:52 · NOR (McLaren)", "the phase and its clock read together")
+    }
+
+    func testPracticeShowsJustTheClock() throws {
+        var raw = liveSnapshot(session: "Practice 2", trackStatus: "1").raw
+        raw["ExtrapolatedClock"] = ["Remaining": "00:42:10"]
+        let live = try XCTUnwrap(FormulaOneAdapter.liveReadout(from: F1LiveSnapshot(raw: raw), season: 2026))
+        XCTAssertEqual(live.detail, "42:10 · NOR (McLaren)", "practice has no phase, just time left")
+    }
+
     // MARK: - TrackStatus → RaceFlag
 
     func testTrackStatusMapping() {

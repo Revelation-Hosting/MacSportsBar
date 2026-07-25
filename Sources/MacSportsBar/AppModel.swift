@@ -454,6 +454,9 @@ final class AppModel: ObservableObject {
                 HStack(spacing: 4) {
                     if let color { Image(systemName: symbol).foregroundStyle(color) }
                     else { Image(systemName: symbol) }
+                    if let leadImage {   // F1: the leading driver's constructor mark
+                        Image(nsImage: leadImage).resizable().scaledToFit().frame(width: 15, height: 15)
+                    }
                     Text(menuBarText)
                 }
             )
@@ -464,6 +467,9 @@ final class AppModel: ObservableObject {
             content = AnyView(
                 HStack(spacing: 4) {
                     Image(systemName: menuBarSymbol).foregroundStyle(accent)
+                    if let leadImage {   // F1: the winning constructor's mark
+                        Image(nsImage: leadImage).resizable().scaledToFit().frame(width: 15, height: 15)
+                    }
                     Text(menuBarText)
                 }
             )

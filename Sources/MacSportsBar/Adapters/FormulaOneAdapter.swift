@@ -152,11 +152,18 @@ struct FormulaOneAdapter: SportAdapter {
         }
 
         var parts: [String] = []
-        // Races count laps; qualifying counts phases.
+        // Races count laps; every other session runs on a clock. Qualifying gets both its phase
+        // and the time left in it ("Q3 1:52"), which is the thing you actually glance for.
         if isRace, let lap = snapshot.currentLap {
             parts.append(snapshot.totalLaps.map { "L\(lap)/\($0)" } ?? "L\(lap)")
-        } else if let phase = snapshot.qualifyingPhase, session.lowercased().contains("qual") {
-            parts.append("Q\(phase)")
+        } else {
+            let phase = snapshot.qualifyingPhase.flatMap {
+                session.lowercased().contains("qual") ? "Q\($0)" : nil
+            }
+            let clock = snapshot.timeRemaining
+            if let combined = [phase, clock].compactMap({ $0 }).joined(separator: " ").nilIfEmpty {
+                parts.append(combined)
+            }
         }
         if let label = snapshot.flag?.shortLabel { parts.append(label) }
         if let who { parts.append(who) }

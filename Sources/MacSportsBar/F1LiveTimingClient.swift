@@ -34,8 +34,9 @@ struct F1LiveTimingClient {
         "TrackStatus",          // green / yellow / SC / VSC / red
         "LapCount",             // current + total laps (races)
         "DriverList",           // driver → team name + livery colour
-        "TimingData",           // running order
-        "SessionData",          // qualifying phase (Q1/Q2/Q3)
+        "TimingData",           // running order + qualifying phase (SessionPart)
+        "ExtrapolatedClock",    // time remaining in the session
+        "SessionData",          // qualifying phase history (fallback)
         "RaceControlMessages",  // safety car / incident text
         "Heartbeat",            // liveness
     ]
@@ -174,6 +175,21 @@ struct F1LiveSnapshot {
     var currentLap: Int? { topic("LapCount")?["CurrentLap"] as? Int }
     var totalLaps: Int? { topic("LapCount")?["TotalLaps"] as? Int }
 
+    /// Time left in the session, e.g. `1:52`. The feed sends `ExtrapolatedClock.Remaining` as
+    /// `HH:MM:SS`; trim the leading zero hour so it reads like a clock people expect. Returns nil
+    /// once the clock has run out or stopped extrapolating. Pure formatting — a tested seam.
+    var timeRemaining: String? { Self.formatRemaining(topic("ExtrapolatedClock")?["Remaining"] as? String) }
+
+    nonisolated static func formatRemaining(_ raw: String?) -> String? {
+        guard let raw, !raw.isEmpty else { return nil }
+        let parts = raw.split(separator: ":").map(String.init)
+        guard parts.count == 3, let hours = Int(parts[0]),
+              let minutes = Int(parts[1]), let seconds = Int(parts[2]) else { return nil }
+        guard hours > 0 || minutes > 0 || seconds > 0 else { return nil }  // 00:00:00 = done
+        if hours > 0 { return "\(hours):\(parts[1]):\(parts[2])" }
+        return "\(minutes):\(parts[2])"
+    }
+
     /// Qualifying phase 1/2/3.
     ///
     /// Verified live during 2026 Hungaroring qualifying: this is `TimingData.SessionPart`. It is
@@ -229,4 +245,9 @@ struct F1LiveSnapshot {
         plain.formatOptions = [.withInternetDateTime]
         return [fractional, plain]
     }()
+}
+
+extension String {
+    /// Nil when empty — lets optional fragments be joined without producing a blank segment.
+    var nilIfEmpty: String? { isEmpty ? nil : self }
 }
