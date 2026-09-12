@@ -7,6 +7,8 @@ struct BaseballAdapter: SportAdapter {
     let league: LeagueID
     /// Lowercased team abbreviations/names the user follows. Empty = no favorites.
     let favorites: Set<String>
+    /// Exact team picks (lowercased ESPN abbreviations) — see `Favorites.teams`.
+    var teams: Set<String> = []
 
     func fetch(using client: ESPNClient, dates: String?) async throws -> [SportEvent] {
         let payload = try await client.scoreboard(
@@ -105,14 +107,10 @@ struct BaseballAdapter: SportAdapter {
     }
 
     private func isFavorite(_ competitor: Scoreboard.Competitor) -> Bool {
-        guard !favorites.isEmpty else { return false }
-        let names = [
-            competitor.team?.abbreviation,
-            competitor.team?.displayName,
-            competitor.team?.shortDisplayName,
-            competitor.team?.location
-        ].compactMap { $0?.lowercased() }
-        return names.contains { name in favorites.contains { name == $0 || name.contains($0) } }
+        Favorites(teams: teams, tokens: favorites).matchesTeam(
+            abbreviation: competitor.team?.abbreviation,
+            names: [competitor.team?.abbreviation, competitor.team?.displayName,
+                    competitor.team?.shortDisplayName, competitor.team?.location])
     }
 
     private func join(_ lhs: String, _ rhs: String) -> String {

@@ -7,9 +7,10 @@ enum LeagueFilter: String, CaseIterable, Identifiable {
     case all, ranked, favorites
     var id: String { rawValue }
 
-    var label: String {
+    /// Menu label, in the sport's own terms ("All races" for NASCAR, "All matches" for soccer).
+    func label(for league: LeagueID) -> String {
         switch self {
-        case .all:       return "All games"
+        case .all:       return "All \(league.eventNoun)"
         case .ranked:    return "Top 25 + favorites"
         case .favorites: return "Favorites only"
         }

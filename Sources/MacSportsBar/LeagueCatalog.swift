@@ -5,8 +5,8 @@ struct SupportedLeague: Identifiable {
     /// League slug, e.g. `"nba"` — also the persistence key for the enable toggle.
     let id: String
     let league: LeagueID
-    /// Builds the adapter for this league given the user's favorite tokens.
-    let makeAdapter: (Set<String>) -> SportAdapter
+    /// Builds the adapter for this league given the user's favorites (team picks + tokens).
+    let makeAdapter: (Favorites) -> SportAdapter
 }
 
 /// Registry of implemented leagues. Add an entry here as each adapter lands; the settings
@@ -36,39 +36,39 @@ enum LeagueCatalog {
             SupportedLeague(
                 id: nba.league,
                 league: nba,
-                makeAdapter: { BasketballAdapter(league: nba, favorites: $0) }
+                makeAdapter: { BasketballAdapter(league: nba, favorites: $0.tokens, teams: $0.teams) }
             ),
             SupportedLeague(
                 id: mlb.league,
                 league: mlb,
-                makeAdapter: { BaseballAdapter(league: mlb, favorites: $0) }
+                makeAdapter: { BaseballAdapter(league: mlb, favorites: $0.tokens, teams: $0.teams) }
             ),
             SupportedLeague(
                 id: pga.league,
                 league: pga,
-                makeAdapter: { GolfAdapter(league: pga, favorites: $0) }
+                makeAdapter: { GolfAdapter(league: pga, favorites: $0.tokens) }
             ),
             SupportedLeague(
                 id: nascar.league,
                 league: nascar,
-                makeAdapter: { RacingAdapter(league: nascar, favorites: $0) }
+                makeAdapter: { RacingAdapter(league: nascar, favorites: $0.tokens) }
             ),
             SupportedLeague(id: nfl.league, league: nfl,
-                            makeAdapter: { HeadToHeadAdapter(league: nfl, favorites: $0, style: .quarters) }),
+                            makeAdapter: { HeadToHeadAdapter(league: nfl, favorites: $0.tokens, teams: $0.teams, style: .quarters) }),
             SupportedLeague(id: nhl.league, league: nhl,
-                            makeAdapter: { HeadToHeadAdapter(league: nhl, favorites: $0, style: .hockey) }),
+                            makeAdapter: { HeadToHeadAdapter(league: nhl, favorites: $0.tokens, teams: $0.teams, style: .hockey) }),
             SupportedLeague(id: ncaaf.league, league: ncaaf,
-                            makeAdapter: { HeadToHeadAdapter(league: ncaaf, favorites: $0, style: .quarters) }),
+                            makeAdapter: { HeadToHeadAdapter(league: ncaaf, favorites: $0.tokens, teams: $0.teams, style: .quarters) }),
             SupportedLeague(id: epl.league, league: epl,
-                            makeAdapter: { HeadToHeadAdapter(league: epl, favorites: $0, style: .soccer) }),
+                            makeAdapter: { HeadToHeadAdapter(league: epl, favorites: $0.tokens, teams: $0.teams, style: .soccer) }),
             SupportedLeague(id: ucl.league, league: ucl,
-                            makeAdapter: { HeadToHeadAdapter(league: ucl, favorites: $0, style: .soccer) }),
+                            makeAdapter: { HeadToHeadAdapter(league: ucl, favorites: $0.tokens, teams: $0.teams, style: .soccer) }),
             SupportedLeague(id: mls.league, league: mls,
-                            makeAdapter: { HeadToHeadAdapter(league: mls, favorites: $0, style: .soccer) }),
+                            makeAdapter: { HeadToHeadAdapter(league: mls, favorites: $0.tokens, teams: $0.teams, style: .soccer) }),
             SupportedLeague(id: worldcup.league, league: worldcup,
-                            makeAdapter: { HeadToHeadAdapter(league: worldcup, favorites: $0, style: .soccer) }),
+                            makeAdapter: { HeadToHeadAdapter(league: worldcup, favorites: $0.tokens, teams: $0.teams, style: .soccer) }),
             SupportedLeague(id: f1.league, league: f1,
-                            makeAdapter: { FormulaOneAdapter(league: f1, favorites: $0) })
+                            makeAdapter: { FormulaOneAdapter(league: f1, favorites: $0.tokens) })
         ]
     }()
 }

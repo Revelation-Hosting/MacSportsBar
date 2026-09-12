@@ -10,7 +10,7 @@ enum SmokeTest {
     static func run() async {
         let client = ESPNClient()
         for league in LeagueCatalog.all {
-            let adapter = league.makeAdapter([])
+            let adapter = league.makeAdapter(.none)
             do {
                 let events = try await adapter.fetch(using: client)
                     .sorted { $0.sortPriority > $1.sortPriority }

@@ -34,7 +34,7 @@ struct SettingsView: View {
                         Spacer()
                         Picker("Show", selection: filter(league)) {
                             ForEach(LeagueFilter.options(for: league.league)) { option in
-                                Text(option.label).tag(option)
+                                Text(option.label(for: league.league)).tag(option)
                             }
                         }
                         .labelsHidden()

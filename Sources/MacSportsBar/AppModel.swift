@@ -137,14 +137,16 @@ final class AppModel: ObservableObject {
         enabledLeagues.map { $0.makeAdapter(favorites(for: $0.league)) }
     }
 
-    /// Favorites passed to a league's adapter: exact team selections for team sports, plus the
-    /// free-form tokens (which also cover golf/NASCAR players and drivers).
-    private func favorites(for league: LeagueID) -> Set<String> {
+    /// Favorites passed to a league's adapter: exact team picks for team sports (matched whole
+    /// against the abbreviation — never by substring), plus the free-form tokens (which also
+    /// cover golf/NASCAR players and drivers).
+    private func favorites(for league: LeagueID) -> Favorites {
         switch league.sport {
         case "golf", "racing":
-            return settings.favoriteTokens
+            return Favorites(tokens: settings.favoriteTokens)
         default:
-            return (settings.teamFavorites[league.league] ?? []).union(settings.favoriteTokens)
+            return Favorites(teams: settings.teamFavorites[league.league] ?? [],
+                             tokens: settings.favoriteTokens)
         }
     }
 
