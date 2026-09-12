@@ -59,6 +59,9 @@ Coca-Cola 600 · L245/400 · St3 · #5 Larson   ← live NASCAR Cup
   are off by default), never on every score. Requires the installed `.app`.
 - A **±24h favorites view** — your teams' recent finals, live games, and upcoming matchups,
   surfaced both in the dropdown digest and the ticker.
+- A **per-league display filter** — each league shows all its games, only your favorites, or
+  (college football) **Top-25 matchups plus your favorites** — so soccer can be favorites-only
+  while the whole NCAAF Saturday still rotates through.
 - **Keyless and secret-free** — it uses public, no-auth data endpoints, so there's nothing
   to configure and nothing sensitive to store.
 
@@ -170,11 +173,12 @@ General ▸ Login Items** to start it at login.
 
 ## Tests
 
-The deterministic model and formatting logic is covered by **186 hermetic XCTest cases** —
+The deterministic model and formatting logic is covered by **216 hermetic XCTest cases** —
 every adapter's decode → format path (basketball; baseball with base/out state; the generic
 head-to-head adapter for football, hockey, and soccer; the golf leaderboard; NASCAR's ESPN
 baseline; and the NASCAR live-feed mapping with its flag-state enum), period/inning labels,
-menu-bar truncation and cycle selection, favorites matching, the followed-series logic, and the
+menu-bar truncation and cycle selection, favorites matching (exact picks vs. fuzzy free text),
+the per-league display filter and its settings migrations, the followed-series logic, and the
 league auto-enable migration. Fixtures are inline JSON or captured real ESPN/NASCAR payloads.
 
 ```bash
@@ -279,6 +283,12 @@ and polling policy are in [menubar-sports-app-spec.md](menubar-sports-app-spec.m
   order with constructor livery, lap count, and the Q1/Q2/Q3 phase. Gated on a fresh heartbeat so
   the feed's between-sessions stale snapshot never renders as live, and degrades silently to the
   ESPN view on WAF-blocked networks. ✅ **done**
+- **M16** — **College football season**: the team picker lists every ESPN team (the `/teams`
+  endpoint silently caps at 50 without a `limit`), with search; the scoreboard asks for the full
+  FBS slate (`groups=80` — ESPN's default board is a Top-25 slice); a **per-league display
+  filter** (all / Top 25 + favorites / favorites only) replaces the global favorites switch; and
+  picker picks match ESPN abbreviations exactly, so choosing Washington no longer lights up
+  Washington State. ✅ **done**
 
 ---
 
