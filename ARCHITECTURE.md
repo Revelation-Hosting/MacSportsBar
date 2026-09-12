@@ -81,6 +81,10 @@ adapter — it lives in the process-wide `OpenF1ConstructorDirectory` actor with
 ### `LeagueCatalog`
 A flat list of `SupportedLeague { id, league, makeAdapter }`. The poll loop, the Settings toggles,
 and the favorites picker all derive from this list, so registering a league wires it everywhere.
+`makeAdapter` receives the user's `Favorites` — exact team picks (`teams`, lowercased ESPN
+abbreviations, matched whole) and free-form `tokens` (matched by substring) — and each adapter
+takes whichever apply. A `LeagueID` can also carry `scoreboardQuery` (extra query items ESPN needs
+for a complete board) and `hasRankings` (unlocks the Top-25 display filter).
 
 ## Extending
 
@@ -90,7 +94,8 @@ a new slug, with **no adapter changes**:
 ```swift
 let worldcup = LeagueID(sport: "soccer", league: "fifa.world", displayName: "World Cup")
 SupportedLeague(id: worldcup.league, league: worldcup,
-                makeAdapter: { HeadToHeadAdapter(league: worldcup, favorites: $0, style: .soccer) })
+                makeAdapter: { HeadToHeadAdapter(league: worldcup, favorites: $0.tokens,
+                                                 teams: $0.teams, style: .soccer) })
 ```
 Returning users auto-enable new leagues via the `Settings.seenLeagues` migration.
 
@@ -140,7 +145,12 @@ stays green and fully hermetic (it runs identically locally and in CI).
 
 - **ESPN** `site.api.espn.com/apis/site/v2/sports/{sport}/{league}/scoreboard` — keyless but
   **undocumented and unofficial**; it can change shape without notice, which is exactly why every
-  adapter decodes defensively.
+  adapter decodes defensively. Two quiet traps, both hit by college football:
+  - `/teams` returns **50 entries unless you pass `limit`** — the pro leagues fit, but the
+    762-team college list was silently truncated. `TeamDirectory` always asks for `limit=1000`.
+  - The **college-football scoreboard defaults to a Top-25 slice** (~24 games on a Saturday vs
+    ~86 for the FBS group). `LeagueID.scoreboardQuery` carries `groups=80` for it. The same
+    payload's `curatedRank.current` (99 = unranked) feeds `SportEvent.isRanked`.
 - **NASCAR** has its own feed because ESPN holds no NASCAR rights (its NASCAR data is `basic/manual`,
   with no live laps/stages/flags). Live telemetry comes from `cf.nascar.com/live/feeds/live-feed.json`
   — and unlike ESPN, NASCAR publishes a [Swagger spec](https://feed.nascar.com/swagger). `RacingAdapter`

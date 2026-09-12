@@ -27,8 +27,25 @@ struct SettingsView: View {
         Form {
             Section("Sports") {
                 ForEach(LeagueCatalog.all) { league in
-                    Toggle(league.league.displayName, isOn: enabled(league.id))
+                    // Name … [All games ▾] [switch] — the switch stays flush right like every
+                    // other row; a bare `Toggle(name)` in an HStack would hug its label.
+                    HStack(spacing: 12) {
+                        Text(league.league.displayName)
+                        Spacer()
+                        Picker("Show", selection: filter(league)) {
+                            ForEach(LeagueFilter.options(for: league.league)) { option in
+                                Text(option.label(for: league.league)).tag(option)
+                            }
+                        }
+                        .labelsHidden()
+                        .fixedSize()
+                        .disabled(!settings.enabledLeagues.contains(league.id))
+                        Toggle(league.league.displayName, isOn: enabled(league.id))
+                            .labelsHidden()
+                    }
                 }
+                Text("Per league: everything, only your favorites, or (college football) games with a Top-25 team plus your favorites. Favorites only needs favorites picked in that league — until then it shows everything.")
+                    .font(.caption).foregroundStyle(.secondary)
             }
 
             Section("Favorite teams") {
@@ -46,7 +63,6 @@ struct SettingsView: View {
                     Text("Golf and NASCAR have no team to pick — follow the whole series so its events count as favorites. Add specific drivers/players below.")
                         .font(.caption).foregroundStyle(.secondary)
                 }
-                Toggle("Show favorites only", isOn: $settings.favoritesOnly)
             }
 
             Section("Other favorites") {
@@ -104,6 +120,18 @@ struct SettingsView: View {
         )
     }
 
+    /// Binding for a league's display filter. A stored mode the league doesn't offer (e.g.
+    /// "Top 25" on a league with no poll) reads back as "All games" so the menu never blanks.
+    private func filter(_ league: SupportedLeague) -> Binding<LeagueFilter> {
+        Binding(
+            get: {
+                let stored = settings.filter(for: league.id)
+                return LeagueFilter.options(for: league.league).contains(stored) ? stored : .all
+            },
+            set: { settings.setFilter($0, for: league.id) }
+        )
+    }
+
     /// Binding for following an entire series (golf/NASCAR) by league slug.
     private func following(_ id: String) -> Binding<Bool> {
         Binding(
@@ -122,6 +150,12 @@ private struct TeamPickerGroup: View {
 
     @State private var teams: [TeamInfo] = []
     @State private var didLoad = false
+    @State private var query = ""
+
+    /// Rows listed at once. Lists longer than this (college football has 700+ teams) get a
+    /// search field, and the blank-query list is capped here so expanding the group doesn't
+    /// mount hundreds of logo-loading rows.
+    private static let rowCap = 50
 
     var body: some View {
         DisclosureGroup {
@@ -144,7 +178,20 @@ private struct TeamPickerGroup: View {
                 .font(.caption)
             }
         } else {
-            ForEach(teams) { team in
+            if teams.count > Self.rowCap {
+                TextField("Search teams", text: $query, prompt: Text("Search \(teams.count) teams"))
+                    .textFieldStyle(.roundedBorder)
+            }
+            let visible = TeamDirectory.visible(
+                teams, query: query, selected: settings.teamFavorites[league.id] ?? [],
+                cap: Self.rowCap)
+            if visible.shown.isEmpty {
+                Text("No teams match “\(query)”.").font(.caption).foregroundStyle(.secondary)
+            } else if visible.hidden > 0 {
+                Text("Showing \(visible.shown.count) of \(visible.shown.count + visible.hidden) — search to narrow.")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+            ForEach(visible.shown) { team in
                 Toggle(isOn: binding(team)) {
                     HStack(spacing: 8) {
                         AsyncImage(url: team.logoURL) { image in

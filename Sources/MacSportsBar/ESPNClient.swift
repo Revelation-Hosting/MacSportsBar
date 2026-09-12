@@ -21,19 +21,13 @@ struct ESPNClient {
     }
 
     /// GET `<base>/<sport>/<league>/<resource>` and decode it as `T`. `dates` (YYYYMMDD) adds
-    /// the `?dates=` query to fetch a specific day instead of the default (today).
+    /// the `?dates=` query to fetch a specific day instead of the default (today); `query` adds
+    /// any further parameters (e.g. `groups`, `limit`) the endpoint needs.
     func resource<T: Decodable>(
-        sport: String, league: String, _ resource: String, dates: String? = nil, as type: T.Type
+        sport: String, league: String, _ resource: String, dates: String? = nil,
+        query: [URLQueryItem] = [], as type: T.Type
     ) async throws -> T {
-        var url = baseURL
-            .appendingPathComponent(sport)
-            .appendingPathComponent(league)
-            .appendingPathComponent(resource)
-        if let dates {
-            var components = URLComponents(url: url, resolvingAgainstBaseURL: false)
-            components?.queryItems = [URLQueryItem(name: "dates", value: dates)]
-            url = components?.url ?? url
-        }
+        let url = url(sport: sport, league: league, resource, dates: dates, query: query)
 
         var request = URLRequest(url: url)
         request.timeoutInterval = timeout
@@ -47,10 +41,31 @@ struct ESPNClient {
     }
 
     /// GET `<base>/<sport>/<league>/scoreboard` and decode it as `T`. `dates` (YYYYMMDD)
-    /// selects a specific day; nil fetches the default (today).
+    /// selects a specific day; nil fetches the default (today). `query` carries a league's
+    /// extra scoreboard parameters (see `LeagueID.scoreboardQuery`).
     func scoreboard<T: Decodable>(
-        sport: String, league: String, dates: String? = nil, as type: T.Type
+        sport: String, league: String, dates: String? = nil, query: [URLQueryItem] = [],
+        as type: T.Type
     ) async throws -> T {
-        try await resource(sport: sport, league: league, "scoreboard", dates: dates, as: type)
+        try await resource(sport: sport, league: league, "scoreboard", dates: dates,
+                           query: query, as: type)
+    }
+
+    /// The request URL for a resource: path segments plus the `dates` and extra query items.
+    /// Pure — the seam the URL-building tests exercise.
+    func url(
+        sport: String, league: String, _ resource: String, dates: String? = nil,
+        query: [URLQueryItem] = []
+    ) -> URL {
+        let url = baseURL
+            .appendingPathComponent(sport)
+            .appendingPathComponent(league)
+            .appendingPathComponent(resource)
+        var items = query
+        if let dates { items.insert(URLQueryItem(name: "dates", value: dates), at: 0) }
+        guard !items.isEmpty else { return url }
+        var components = URLComponents(url: url, resolvingAgainstBaseURL: false)
+        components?.queryItems = items
+        return components?.url ?? url
     }
 }

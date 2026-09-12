@@ -17,11 +17,14 @@ struct HeadToHeadAdapter: SportAdapter {
     let league: LeagueID
     /// Lowercased favorite team names/abbreviations. Empty = no favorites.
     let favorites: Set<String>
+    /// Exact team picks (lowercased ESPN abbreviations) — see `Favorites.teams`.
+    var teams: Set<String> = []
     let style: PeriodStyle
 
     func fetch(using client: ESPNClient, dates: String?) async throws -> [SportEvent] {
         let payload = try await client.scoreboard(
-            sport: league.sport, league: league.league, dates: dates, as: Scoreboard.self
+            sport: league.sport, league: league.league, dates: dates,
+            query: league.scoreboardQuery, as: Scoreboard.self
         )
         return (payload.events ?? []).compactMap(map)
     }
@@ -42,6 +45,7 @@ struct HeadToHeadAdapter: SportAdapter {
         let status = event.status ?? competition.status
         let state = status?.type?.state ?? "pre"
         let isFav = isFavorite(home) || isFavorite(away)
+        let ranked = isRanked(home) || isRanked(away)
         let scoreLine = "\(awayAbbr) \(away.score ?? "0")  \(homeAbbr) \(home.score ?? "0")"
         let id = event.id ?? "\(awayAbbr)-\(homeAbbr)"
         let gameDate = parseDate(event.date)
@@ -51,7 +55,8 @@ struct HeadToHeadAdapter: SportAdapter {
             let detail = liveDetail(status)
             return SportEvent(id: id, league: league, state: .live,
                               displayString: join(scoreLine, detail),
-                              isFavorite: isFav, sortPriority: isFav ? 1000 : 800, date: gameDate,
+                              isFavorite: isFav, sortPriority: isFav ? 1000 : 800,
+                              isRanked: ranked, date: gameDate,
                               period: status?.period,
                               awayLogo: logoURL(away), homeLogo: logoURL(home),
                               matchup: .init(away: awayAbbr, awayScore: away.score ?? "0",
@@ -59,7 +64,8 @@ struct HeadToHeadAdapter: SportAdapter {
         case "post":
             return SportEvent(id: id, league: league, state: .final,
                               displayString: join(scoreLine, "Final"),
-                              isFavorite: isFav, sortPriority: isFav ? 300 : 100, date: gameDate,
+                              isFavorite: isFav, sortPriority: isFav ? 300 : 100,
+                              isRanked: ranked, date: gameDate,
                               awayLogo: logoURL(away), homeLogo: logoURL(home),
                               matchup: .init(away: awayAbbr, awayScore: away.score ?? "0",
                                              home: homeAbbr, homeScore: home.score ?? "0", detail: "Final"))
@@ -68,7 +74,8 @@ struct HeadToHeadAdapter: SportAdapter {
             let when = preLabel(start, fallback: status)
             return SportEvent(id: id, league: league, state: .pre(startDate: start),
                               displayString: join("\(awayAbbr) vs \(homeAbbr)", when),
-                              isFavorite: isFav, sortPriority: isFav ? 600 : 400, date: gameDate,
+                              isFavorite: isFav, sortPriority: isFav ? 600 : 400,
+                              isRanked: ranked, date: gameDate,
                               awayLogo: logoURL(away), homeLogo: logoURL(home),
                               matchup: .init(away: awayAbbr, awayScore: "",
                                              home: homeAbbr, homeScore: "", detail: when))
@@ -149,15 +156,18 @@ struct HeadToHeadAdapter: SportAdapter {
         competitor.team?.logo.flatMap { URL(string: $0) }
     }
 
+    /// Whether the competitor is a Top-25 team. ESPN's college feeds carry `curatedRank.current`
+    /// (the AP poll, or the CFP ranking once it's out), with unranked teams at 99.
+    private func isRanked(_ competitor: Scoreboard.Competitor) -> Bool {
+        guard let rank = competitor.curatedRank?.current else { return false }
+        return (1...25).contains(rank)
+    }
+
     private func isFavorite(_ competitor: Scoreboard.Competitor) -> Bool {
-        guard !favorites.isEmpty else { return false }
-        let names = [
-            competitor.team?.abbreviation,
-            competitor.team?.displayName,
-            competitor.team?.shortDisplayName,
-            competitor.team?.location
-        ].compactMap { $0?.lowercased() }
-        return names.contains { name in favorites.contains { name == $0 || name.contains($0) } }
+        Favorites(teams: teams, tokens: favorites).matchesTeam(
+            abbreviation: competitor.team?.abbreviation,
+            names: [competitor.team?.abbreviation, competitor.team?.displayName,
+                    competitor.team?.shortDisplayName, competitor.team?.location])
     }
 
     private func join(_ lhs: String, _ rhs: String) -> String {
@@ -219,7 +229,10 @@ extension HeadToHeadAdapter {
             let homeAway: String?
             let score: String?
             let team: Team?
+            let curatedRank: Rank?
         }
+
+        struct Rank: Decodable { let current: Int? }
 
         struct Team: Decodable {
             let abbreviation: String?

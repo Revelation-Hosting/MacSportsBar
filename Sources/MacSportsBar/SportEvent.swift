@@ -23,6 +23,9 @@ struct SportEvent: Identifiable {
     var isFavorite: Bool
     /// Higher sorts first. Convention: live-favorite > live > pre-favorite > pre > final.
     var sortPriority: Int
+    /// Whether a ranked (AP/coaches Top-25) team is involved — college football only; the pro
+    /// leagues have no poll. Drives the per-league "Top 25 + favorites" display filter.
+    var isRanked: Bool = false
     /// Scheduled start time (the feed's UTC date), for the ±24h favorites window and for
     /// labeling recent/upcoming games. Defaulted so adapters opt in.
     var date: Date? = nil
