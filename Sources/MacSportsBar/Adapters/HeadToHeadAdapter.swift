@@ -21,7 +21,8 @@ struct HeadToHeadAdapter: SportAdapter {
 
     func fetch(using client: ESPNClient, dates: String?) async throws -> [SportEvent] {
         let payload = try await client.scoreboard(
-            sport: league.sport, league: league.league, dates: dates, as: Scoreboard.self
+            sport: league.sport, league: league.league, dates: dates,
+            query: league.scoreboardQuery, as: Scoreboard.self
         )
         return (payload.events ?? []).compactMap(map)
     }

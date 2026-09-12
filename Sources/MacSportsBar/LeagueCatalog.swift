@@ -19,7 +19,13 @@ enum LeagueCatalog {
         let nascar = LeagueID(sport: "racing", league: "nascar-premier", displayName: "NASCAR")
         let nfl = LeagueID(sport: "football", league: "nfl", displayName: "NFL")
         let nhl = LeagueID(sport: "hockey", league: "nhl", displayName: "NHL")
-        let ncaaf = LeagueID(sport: "football", league: "college-football", displayName: "NCAAF")
+        // ESPN's default college-football board is a Top-25-ish slice (~24 games on a
+        // Saturday); `groups=80` selects the full FBS slate (~85+), so a favorite outside the
+        // rankings actually shows up. `limit` guards against the API's own page size.
+        let ncaaf = LeagueID(
+            sport: "football", league: "college-football", displayName: "NCAAF",
+            scoreboardQuery: [URLQueryItem(name: "groups", value: "80"),
+                              URLQueryItem(name: "limit", value: "300")])
         let epl = LeagueID(sport: "soccer", league: "eng.1", displayName: "Premier League")
         let ucl = LeagueID(sport: "soccer", league: "uefa.champions", displayName: "Champions League")
         let mls = LeagueID(sport: "soccer", league: "usa.1", displayName: "MLS")

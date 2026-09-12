@@ -8,6 +8,10 @@ struct LeagueID {
     let league: String
     /// Human-readable name for menus and settings.
     let displayName: String
+    /// Extra query parameters for this league's scoreboard. ESPN's college-football board
+    /// returns only a Top-25-ish slice by default; `groups=80` (FBS) is how you ask for the
+    /// whole slate. Empty for leagues whose default board is complete.
+    var scoreboardQuery: [URLQueryItem] = []
 }
 
 extension LeagueID {

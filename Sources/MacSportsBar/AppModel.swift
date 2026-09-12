@@ -39,6 +39,9 @@ final class AppModel: ObservableObject {
     private var cycleCandidates: [SportEvent] = []
     /// Latest fetched + ranked events, before the favorites-only display filter is applied.
     private var lastRanked: [SportEvent] = []
+    /// Whether the per-league favorites-only filter dropped anything from the last display pass
+    /// — so an empty ticker can say "No favorite games" rather than "No games".
+    private var filterHidGames = false
     /// Cached yesterday/tomorrow favorite games (static, so refetched on a long throttle).
     private var adjacentFavorites: [SportEvent] = []
     private var adjacentFetchedAt: Date?
@@ -109,7 +112,7 @@ final class AppModel: ObservableObject {
             settings.$cycleFinished.dropFirst().map { _ in () }.eraseToAnyPublisher(),
             settings.$cycleUpcoming.dropFirst().map { _ in () }.eraseToAnyPublisher(),
             settings.$pinnedEventID.dropFirst().map { _ in () }.eraseToAnyPublisher(),
-            settings.$favoritesOnly.dropFirst().map { _ in () }.eraseToAnyPublisher(),
+            settings.$favoritesOnlyLeagues.dropFirst().map { _ in () }.eraseToAnyPublisher(),
             settings.$showTeamLogos.dropFirst().map { _ in () }.eraseToAnyPublisher(),
         ]
         Publishers.MergeMany(displayChanges)
@@ -257,8 +260,8 @@ final class AppModel: ObservableObject {
         // older than the ±24h window shouldn't linger in the ticker or the dropdown.
         let fresh = Self.freshDisplayEvents(lastRanked, now: Date())
         let shown = Self.displaySet(from: fresh,
-                                    favoritesOnly: settings.favoritesOnly,
-                                    hasFavorites: settings.hasAnyFavorites)
+                                    favoritesOnlyLeagues: settings.activeFavoritesOnlyLeagues)
+        filterHidGames = shown.count < fresh.count
         events = shown
         currentInterval = pollInterval(for: shown)
         cycleCandidates = rotationCandidates(from: shown)
@@ -397,8 +400,7 @@ final class AppModel: ObservableObject {
                 currentLeadLogoAnchor = chosen.leadLogoAnchor
             } else {
                 menuBarSymbol = "sportscourt.fill"
-                menuBarText = (settings.favoritesOnly && settings.hasAnyFavorites)
-                    ? "No favorite games" : "No games"
+                menuBarText = filterHidGames ? "No favorite games" : "No games"
             }
         }
         renderMenuBarImage()
@@ -576,13 +578,15 @@ final class AppModel: ObservableObject {
         }
     }
 
-    /// What the menu shows: when "favorites only" is on AND the user actually has favorites
-    /// configured (structured team picks or free-form tokens), filter to favorite events;
-    /// otherwise show everything (so it never filters down to nothing).
+    /// What the menu shows: events from a league in `favoritesOnlyLeagues` are kept only when
+    /// they're favorites; every other league passes through untouched. The caller passes the
+    /// *active* set (`Settings.activeFavoritesOnlyLeagues` — switched on and with favorites
+    /// configured) so a league is never filtered down to nothing.
     nonisolated static func displaySet(
-        from ranked: [SportEvent], favoritesOnly: Bool, hasFavorites: Bool
+        from ranked: [SportEvent], favoritesOnlyLeagues: Set<String>
     ) -> [SportEvent] {
-        (favoritesOnly && hasFavorites) ? ranked.filter(\.isFavorite) : ranked
+        guard !favoritesOnlyLeagues.isEmpty else { return ranked }
+        return ranked.filter { $0.isFavorite || !favoritesOnlyLeagues.contains($0.league.league) }
     }
 
     /// Events worth cycling through: all live games, else favorites, else just the top one.

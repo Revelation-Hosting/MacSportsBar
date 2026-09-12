@@ -22,8 +22,11 @@ final class Settings: ObservableObject {
     @Published var cycleUpcoming: Bool
     /// Event id pinned to the menu bar, overriding the rotation, or nil for none.
     @Published var pinnedEventID: String?
-    /// When on (and favorites are set), the ticker shows only favorite teams' games.
-    @Published var favoritesOnly: Bool
+    /// League slugs whose ticker/dropdown entries are restricted to favorite games. Per league,
+    /// so you can hide every soccer match but your club's while still seeing the whole NCAAF
+    /// slate. A league with no favorites configured is never filtered down to nothing — see
+    /// `hasFavorites(in:)`.
+    @Published var favoritesOnlyLeagues: Set<String>
     /// Master switch for favorite-team notifications — also the permission anchor. The three
     /// flags below choose which boundaries actually fire (all gated by this).
     @Published var notifyFavorites: Bool
@@ -55,7 +58,8 @@ final class Settings: ObservableObject {
         static let cycleFinished = "cycleFinished"
         static let cycleUpcoming = "cycleUpcoming"
         static let pinnedEventID = "pinnedEventID"
-        static let favoritesOnly = "favoritesOnly"
+        static let favoritesOnly = "favoritesOnly"          // legacy global switch (migrated)
+        static let favoritesOnlyLeagues = "favoritesOnlyLeagues"
         static let notifyFavorites = "notifyFavorites"
         static let notifyStart = "notifyStart"
         static let notifyPeriod = "notifyPeriod"
@@ -87,7 +91,15 @@ final class Settings: ObservableObject {
         cycleFinished = defaults.object(forKey: Key.cycleFinished) as? Bool ?? true
         cycleUpcoming = defaults.object(forKey: Key.cycleUpcoming) as? Bool ?? true
         pinnedEventID = defaults.string(forKey: Key.pinnedEventID)
-        favoritesOnly = defaults.object(forKey: Key.favoritesOnly) as? Bool ?? false
+        if let stored = defaults.array(forKey: Key.favoritesOnlyLeagues) as? [String] {
+            favoritesOnlyLeagues = Set(stored)
+        } else if defaults.bool(forKey: Key.favoritesOnly) {
+            // Migrate the old global "show favorites only" switch: it applied to every league,
+            // so seed the per-league set with all of them.
+            favoritesOnlyLeagues = Set(allLeagueIDs)
+        } else {
+            favoritesOnlyLeagues = []
+        }
         notifyFavorites = defaults.object(forKey: Key.notifyFavorites) as? Bool ?? false
         notifyStart = defaults.object(forKey: Key.notifyStart) as? Bool ?? true
         notifyPeriod = defaults.object(forKey: Key.notifyPeriod) as? Bool ?? false  // noisy → off by default
@@ -111,7 +123,9 @@ final class Settings: ObservableObject {
             if let value { self?.defaults.set(value, forKey: Key.pinnedEventID) }
             else { self?.defaults.removeObject(forKey: Key.pinnedEventID) }
         }
-        persist($favoritesOnly) { [weak self] in self?.defaults.set($0, forKey: Key.favoritesOnly) }
+        persist($favoritesOnlyLeagues) { [weak self] in
+            self?.defaults.set(Array($0), forKey: Key.favoritesOnlyLeagues)
+        }
         persist($notifyFavorites) { [weak self] in self?.defaults.set($0, forKey: Key.notifyFavorites) }
         persist($notifyStart) { [weak self] in self?.defaults.set($0, forKey: Key.notifyStart) }
         persist($notifyPeriod) { [weak self] in self?.defaults.set($0, forKey: Key.notifyPeriod) }
@@ -144,10 +158,32 @@ final class Settings: ObservableObject {
         teamFavorites[league] = set.isEmpty ? nil : set
     }
 
+    /// Whether a league's games are restricted to favorites.
+    func isFavoritesOnly(_ league: String) -> Bool { favoritesOnlyLeagues.contains(league) }
+
+    /// Restrict (or stop restricting) a league to favorite games.
+    func setFavoritesOnly(_ league: String, on: Bool) {
+        if on { favoritesOnlyLeagues.insert(league) } else { favoritesOnlyLeagues.remove(league) }
+    }
+
     /// Whether any favorites are configured at all — structured team picks, followed series, or
     /// free-form tokens.
     var hasAnyFavorites: Bool {
         !teamFavorites.isEmpty || !followedLeagues.isEmpty || !favoriteTokens.isEmpty
+    }
+
+    /// Whether `league` (slug) has any favorites that could match its events: a team pick, a
+    /// series follow, or free-form tokens (which apply to every league).
+    func hasFavorites(in league: String) -> Bool {
+        !(teamFavorites[league] ?? []).isEmpty
+            || followedLeagues.contains(league)
+            || !favoriteTokens.isEmpty
+    }
+
+    /// Leagues whose favorites-only restriction is actually in force: switched on *and* with
+    /// favorites to keep, so a league never filters down to nothing.
+    var activeFavoritesOnlyLeagues: Set<String> {
+        favoritesOnlyLeagues.filter { hasFavorites(in: $0) }
     }
 
     /// Parsed, lowercased favorite tokens used for matching against feed names.

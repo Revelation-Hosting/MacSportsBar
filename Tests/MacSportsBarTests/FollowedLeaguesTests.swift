@@ -39,7 +39,7 @@ final class FollowedLeaguesTests: XCTestCase {
         let events = AppModel.applyFollowedLeagues(
             [event("race", nascar, favorite: false), event("game", nba, favorite: false)],
             followed: ["nascar-premier"])
-        let shown = AppModel.displaySet(from: events, favoritesOnly: true, hasFavorites: true)
+        let shown = AppModel.displaySet(from: events, favoritesOnlyLeagues: ["nascar-premier", "nba"])
         XCTAssertEqual(shown.map(\.id), ["race"])
     }
 
