@@ -144,4 +144,35 @@ final class HeadToHeadAdapterTests: XCTestCase {
         let mapped = try XCTUnwrap(adapter(.quarters).map(firstEvent(json)))
         XCTAssertTrue(mapped.displayString.hasPrefix("NE vs SEA"), mapped.displayString)
     }
+
+    // MARK: - Rankings (college football's Top-25 filter)
+
+    func testRankedWhenEitherTeamIsTop25() throws {
+        let event = try firstEvent("""
+        {"events":[{"id":"1","date":"2026-09-12T19:30Z","status":{"type":{"state":"pre"}},
+          "competitions":[{"competitors":[
+            {"homeAway":"home","team":{"abbreviation":"ND"},"curatedRank":{"current":3}},
+            {"homeAway":"away","team":{"abbreviation":"RICE"},"curatedRank":{"current":99}}
+        ]}]}]}
+        """)
+        XCTAssertTrue(try XCTUnwrap(adapter(.quarters).map(event)).isRanked)
+    }
+
+    func testUnrankedWhenBothAre99OrRankIsMissing() throws {
+        let unranked = try firstEvent("""
+        {"events":[{"id":"1","status":{"type":{"state":"in"}},"competitions":[{"competitors":[
+            {"homeAway":"home","team":{"abbreviation":"A"},"curatedRank":{"current":99}},
+            {"homeAway":"away","team":{"abbreviation":"B"},"curatedRank":{"current":40}}
+        ]}]}]}
+        """)
+        XCTAssertFalse(try XCTUnwrap(adapter(.quarters).map(unranked)).isRanked)
+
+        let noPoll = try firstEvent("""
+        {"events":[{"id":"2","status":{"type":{"state":"post"}},"competitions":[{"competitors":[
+            {"homeAway":"home","team":{"abbreviation":"KC"}},
+            {"homeAway":"away","team":{"abbreviation":"BUF"}}
+        ]}]}]}
+        """)
+        XCTAssertFalse(try XCTUnwrap(adapter(.quarters).map(noPoll)).isRanked, "NFL has no poll")
+    }
 }

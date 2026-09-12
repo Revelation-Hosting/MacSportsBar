@@ -25,7 +25,8 @@ enum LeagueCatalog {
         let ncaaf = LeagueID(
             sport: "football", league: "college-football", displayName: "NCAAF",
             scoreboardQuery: [URLQueryItem(name: "groups", value: "80"),
-                              URLQueryItem(name: "limit", value: "300")])
+                              URLQueryItem(name: "limit", value: "300")],
+            hasRankings: true)
         let epl = LeagueID(sport: "soccer", league: "eng.1", displayName: "Premier League")
         let ucl = LeagueID(sport: "soccer", league: "uefa.champions", displayName: "Champions League")
         let mls = LeagueID(sport: "soccer", league: "usa.1", displayName: "MLS")

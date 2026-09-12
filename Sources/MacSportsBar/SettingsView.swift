@@ -27,19 +27,24 @@ struct SettingsView: View {
         Form {
             Section("Sports") {
                 ForEach(LeagueCatalog.all) { league in
-                    // Name … [☐ Favorites only] [switch] — the switch stays flush right like
-                    // every other row; a bare `Toggle(name)` in an HStack would hug its label.
+                    // Name … [All games ▾] [switch] — the switch stays flush right like every
+                    // other row; a bare `Toggle(name)` in an HStack would hug its label.
                     HStack(spacing: 12) {
                         Text(league.league.displayName)
                         Spacer()
-                        Toggle("Favorites only", isOn: favoritesOnly(league.id))
-                            .toggleStyle(.checkbox)
-                            .disabled(!settings.enabledLeagues.contains(league.id))
+                        Picker("Show", selection: filter(league)) {
+                            ForEach(LeagueFilter.options(for: league.league)) { option in
+                                Text(option.label).tag(option)
+                            }
+                        }
+                        .labelsHidden()
+                        .fixedSize()
+                        .disabled(!settings.enabledLeagues.contains(league.id))
                         Toggle(league.league.displayName, isOn: enabled(league.id))
                             .labelsHidden()
                     }
                 }
-                Text("Favorites only hides that league's other games once you've picked favorites in it — so you can keep every NCAAF game but only your club's matches in soccer.")
+                Text("Per league: everything, only your favorites, or (college football) games with a Top-25 team plus your favorites. Favorites only needs favorites picked in that league — until then it shows everything.")
                     .font(.caption).foregroundStyle(.secondary)
             }
 
@@ -115,11 +120,15 @@ struct SettingsView: View {
         )
     }
 
-    /// Binding for restricting a league to favorite games.
-    private func favoritesOnly(_ id: String) -> Binding<Bool> {
+    /// Binding for a league's display filter. A stored mode the league doesn't offer (e.g.
+    /// "Top 25" on a league with no poll) reads back as "All games" so the menu never blanks.
+    private func filter(_ league: SupportedLeague) -> Binding<LeagueFilter> {
         Binding(
-            get: { settings.isFavoritesOnly(id) },
-            set: { settings.setFavoritesOnly(id, on: $0) }
+            get: {
+                let stored = settings.filter(for: league.id)
+                return LeagueFilter.options(for: league.league).contains(stored) ? stored : .all
+            },
+            set: { settings.setFilter($0, for: league.id) }
         )
     }
 

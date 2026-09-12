@@ -12,6 +12,9 @@ struct LeagueID {
     /// returns only a Top-25-ish slice by default; `groups=80` (FBS) is how you ask for the
     /// whole slate. Empty for leagues whose default board is complete.
     var scoreboardQuery: [URLQueryItem] = []
+    /// Whether this league's feed ranks teams (a Top-25 poll) — college sports only. Unlocks
+    /// the "Top 25 + favorites" display filter for the league.
+    var hasRankings: Bool = false
 }
 
 extension LeagueID {

@@ -198,9 +198,10 @@ icon. Click it to open the popover, then choose **Settings…** to:
 - **Pick favorite teams** from a per-league list (with team logos — college football lists
   every ESPN team, with a search box), or type players/drivers for golf/NASCAR. Favorite games
   sort to the front and drive notifications.
-- Restrict any league to **favorites only** — per league, so you can hide every soccer match
-  but your club's while still seeing the whole NCAAF slate. (A league with no favorites picked
-  is never filtered down to nothing.)
+- Choose what each league contributes: **all games**, **favorites only**, or — for college
+  football — **Top 25 + favorites** (games with a ranked team, plus yours). Per league, so you
+  can hide every soccer match but your club's while still seeing the whole NCAAF slate. (A
+  favorites-only league with no favorites picked is never filtered down to nothing.)
 - Override the refresh cadence and toggle favorites-only notifications.
 - Choose whether recent finals and upcoming favorites join the rotation (live always rotates),
   **pin a game** from the menu to keep one fixed, and set the maximum string length.
