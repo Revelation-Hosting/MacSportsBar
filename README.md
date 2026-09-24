@@ -123,7 +123,8 @@ second) keeps this a low-volume, well-behaved client on an undocumented endpoint
 
 - **macOS 14 (Sonoma) or later** — deployment target is 14.0; developed on macOS 26.
 - **A Swift 6 toolchain** — install [Xcode](https://developer.apple.com/xcode/) 15+ or the
-  Command Line Tools (`xcode-select --install`). Developed on Xcode 26 / Swift 6.
+  Command Line Tools (`xcode-select --install`). Developed on Xcode 26 / Swift 6. Running
+  the tests (`swift test`) needs Xcode — the Command Line Tools don't ship XCTest.
 - No API keys, accounts, or third-party dependencies.
 
 ---

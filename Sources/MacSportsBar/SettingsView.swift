@@ -141,6 +141,17 @@ struct SettingsView: View {
     }
 }
 
+/// SwiftUI's `State` property wrapper under a name that isn't also a macro. Use it instead
+/// of `@State`.
+///
+/// From the macOS 27 SDK on, SwiftUI also declares `State` as an attached macro, and the
+/// macro wins name lookup — even as `@SwiftUI.State`. Its plugin (`libSwiftUIMacros`) ships
+/// only inside Xcode, so a Command Line Tools build can't expand it and leaves a plain
+/// stored `var` behind: "cannot assign to property: 'self' is immutable", no `$` binding.
+/// No macro is named `ViewState`, so this always resolves to the wrapper — the same thing
+/// `@State` compiled to on earlier SDKs.
+typealias ViewState = SwiftUI.State
+
 /// Expandable per-league picker. Its team list (name + logo) loads lazily on first expand
 /// and is cached by the shared `TeamDirectory`.
 private struct TeamPickerGroup: View {
@@ -148,9 +159,9 @@ private struct TeamPickerGroup: View {
     @ObservedObject var settings: Settings
     let directory: TeamDirectory
 
-    @State private var teams: [TeamInfo] = []
-    @State private var didLoad = false
-    @State private var query = ""
+    @ViewState private var teams: [TeamInfo] = []
+    @ViewState private var didLoad = false
+    @ViewState private var query = ""
 
     /// Rows listed at once. Lists longer than this (college football has 700+ teams) get a
     /// search field, and the blank-query list is capped here so expanding the group doesn't
