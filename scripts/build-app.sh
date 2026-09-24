@@ -14,16 +14,31 @@ cd "$(dirname "$0")/.."
 APP_NAME="MacSportsBar"
 BUNDLE_ID="com.revelationhosting.macsportsbar"
 VERSION="0.1.0"
+MIN_MACOS="14.0"
 APP="${APP_NAME}.app"
 BIN=".build/release/${APP_NAME}"
+ICON_SRC="Resources/AppIcon.icon"
 
 echo "▸ Building release binary…"
 swift build -c release
 
 echo "▸ Assembling ${APP}…"
 rm -rf "$APP"
-mkdir -p "$APP/Contents/MacOS"
+mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BIN" "$APP/Contents/MacOS/$APP_NAME"
+
+# Xcode 26+'s actool compiles the Icon Composer document into Assets.car: the layered
+# Liquid Glass icon macOS 26 renders in light/dark/tinted/clear, plus flattened renditions
+# for macOS 14–15. Without it (Command Line Tools only, or an older Xcode), fall back to the
+# pre-rendered AppIcon.icns that scripts/make-icon.sh keeps alongside the source.
+echo "▸ Adding app icon…"
+xcrun actool "$ICON_SRC" --compile "$APP/Contents/Resources" \
+    --platform macosx --minimum-deployment-target "$MIN_MACOS" --app-icon AppIcon \
+    --output-partial-info-plist ".build/AppIcon-partial.plist" >/dev/null 2>&1 || true
+if [[ ! -f "$APP/Contents/Resources/Assets.car" ]]; then
+    echo "  actool can't compile ${ICON_SRC} here — using the pre-rendered Resources/AppIcon.icns"
+    cp Resources/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
+fi
 
 cat > "$APP/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
@@ -34,10 +49,12 @@ cat > "$APP/Contents/Info.plist" <<PLIST
     <key>CFBundleDisplayName</key><string>${APP_NAME}</string>
     <key>CFBundleIdentifier</key><string>${BUNDLE_ID}</string>
     <key>CFBundleExecutable</key><string>${APP_NAME}</string>
+    <key>CFBundleIconFile</key><string>AppIcon</string>
+    <key>CFBundleIconName</key><string>AppIcon</string>
     <key>CFBundlePackageType</key><string>APPL</string>
     <key>CFBundleShortVersionString</key><string>${VERSION}</string>
     <key>CFBundleVersion</key><string>${VERSION}</string>
-    <key>LSMinimumSystemVersion</key><string>14.0</string>
+    <key>LSMinimumSystemVersion</key><string>${MIN_MACOS}</string>
     <key>LSUIElement</key><true/>
     <key>NSHumanReadableCopyright</key><string>© 2026 Revelation Hosting. MIT licensed.</string>
 </dict>
