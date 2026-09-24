@@ -1,5 +1,7 @@
 # MacSportsBar
 
+<img align="right" src="Resources/AppIcon.png" width="128" height="128" alt="MacSportsBar app icon: an amber 3:2 scoreboard on a green pitch" />
+
 [![CI](https://github.com/Revelation-Hosting/MacSportsBar/actions/workflows/ci.yml/badge.svg)](https://github.com/Revelation-Hosting/MacSportsBar/actions/workflows/ci.yml)
 
 A native macOS **menu bar app** that shows live sports scores as a compact, glanceable
@@ -160,6 +162,13 @@ normal menu-bar app — launched from Finder/Spotlight, surviving terminal sessi
 open MacSportsBar.app             # launch it (runs in the background; no dock icon)
 ```
 
+**App icon:** with Xcode 26+ installed, the script compiles `Resources/AppIcon.icon` (an
+[Icon Composer](https://developer.apple.com/icon-composer/) document) into a layered Liquid Glass
+icon that follows the system's light/dark/tinted/clear icon style on macOS 26, with flattened
+renditions for macOS 14–15. With only the Command Line Tools, it falls back to the pre-rendered
+`Resources/AppIcon.icns`. After editing the icon in Icon Composer, run `./scripts/make-icon.sh` to
+refresh that fallback and the README preview.
+
 **First launch — Gatekeeper:** the app is ad-hoc signed (not Developer-ID signed), so macOS
 blocks it the first time. Right-click the app ▸ **Open** (or **System Settings ▸ Privacy &
 Security ▸ Open Anyway**). After that it launches normally — add it to **System Settings ▸
@@ -267,7 +276,8 @@ and polling policy are in [menubar-sports-app-spec.md](menubar-sports-app-spec.m
   of the league glyph). ✅ **done**
 - **M10** — ±24h favorites window: recent finals + live + upcoming for your teams, in the
   dropdown digest and the ticker (adjacent days fetched only for leagues with favorites). ✅ **done**
-- **M11** — Polish: an app icon and edge cases (postponed/OT/rain delay).
+- **M11** — Polish: an app icon (✅ **done** — a scoreboard on a pitch, built as a macOS 26
+  Liquid Glass icon) and edge cases (postponed/OT/rain delay).
 - **M12** — Real NASCAR live telemetry from NASCAR's own timing feed (`cf.nascar.com`, with a
   documented [Swagger spec](https://feed.nascar.com/swagger)): live lap/stage, running order with
   car number, and a colored flag glyph (green/yellow/red/checkered). ESPN — which holds no NASCAR

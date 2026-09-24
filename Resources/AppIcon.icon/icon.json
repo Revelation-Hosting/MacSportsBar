@@ -1,0 +1,137 @@
+{
+  "fill-specializations": [
+    {
+      "value": {
+        "linear-gradient": [
+          "extended-srgb:0.12000,0.74000,0.33000,1.00000",
+          "extended-srgb:0.00000,0.38000,0.15000,1.00000"
+        ],
+        "orientation": {
+          "start": {
+            "x": 0.5,
+            "y": 0
+          },
+          "stop": {
+            "x": 0.5,
+            "y": 1
+          }
+        }
+      }
+    },
+    {
+      "appearance": "dark",
+      "value": {
+        "linear-gradient": [
+          "extended-srgb:0.05000,0.24000,0.13000,1.00000",
+          "extended-srgb:0.01000,0.08000,0.04000,1.00000"
+        ],
+        "orientation": {
+          "start": {
+            "x": 0.5,
+            "y": 0
+          },
+          "stop": {
+            "x": 0.5,
+            "y": 1
+          }
+        }
+      }
+    }
+  ],
+  "groups": [
+    {
+      "name": "Score",
+      "layers": [
+        {
+          "image-name": "LiveDot.svg",
+          "name": "Live Dot",
+          "glass": true
+        },
+        {
+          "image-name": "Score.svg",
+          "name": "Score",
+          "glass": true
+        }
+      ],
+      "shadow": {
+        "kind": "layer-color",
+        "opacity": 0.5
+      },
+      "translucency": {
+        "enabled": false,
+        "value": 0.0
+      },
+      "specular": true
+    },
+    {
+      "name": "Scoreboard",
+      "layers": [
+        {
+          "image-name": "UnlitSegments.svg",
+          "name": "Unlit Segments",
+          "opacity": 0.045,
+          "glass": false
+        },
+        {
+          "image-name": "Panel.svg",
+          "name": "Panel",
+          "glass": true
+        }
+      ],
+      "shadow": {
+        "kind": "neutral",
+        "opacity": 0.5
+      },
+      "translucency": {
+        "enabled": true,
+        "value": 0.25
+      },
+      "specular": true
+    },
+    {
+      "name": "Stripes",
+      "layers": [
+        {
+          "image-name": "Stripes.svg",
+          "name": "Stripes",
+          "glass": false,
+          "opacity": 0.05
+        }
+      ],
+      "shadow": {
+        "kind": "none",
+        "opacity": 0
+      },
+      "translucency": {
+        "enabled": false,
+        "value": 0
+      },
+      "specular": false
+    },
+    {
+      "name": "Field",
+      "layers": [
+        {
+          "image-name": "FieldLines.svg",
+          "name": "Field Lines",
+          "glass": false,
+          "opacity": 0.2
+        }
+      ],
+      "shadow": {
+        "kind": "none",
+        "opacity": 0
+      },
+      "translucency": {
+        "enabled": false,
+        "value": 0
+      },
+      "specular": false
+    }
+  ],
+  "supported-platforms": {
+    "squares": [
+      "macOS"
+    ]
+  }
+}
