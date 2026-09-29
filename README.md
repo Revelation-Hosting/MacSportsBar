@@ -60,7 +60,9 @@ Coca-Cola 600 · L245/400 · St3 · #5 Larson   ← live NASCAR Cup
   period/inning/half, and when it goes final — each **toggleable on its own** (per-inning alerts
   are off by default), never on every score. Requires the installed `.app`.
 - A **±24h favorites view** — your teams' recent finals, live games, and upcoming matchups,
-  surfaced both in the dropdown digest and the ticker.
+  surfaced both in the dropdown digest and the ticker. Every other game you've chosen to see
+  (a Top-25 matchup, a league shown in full) sits in a **flyout per league** — `NCAAF · 3 live ▸`
+  — so the menu stays short without hiding anything.
 - A **per-league display filter** — each league shows all its games, only your favorites, or
   (college football) **Top-25 matchups plus your favorites** — so soccer can be favorites-only
   while the whole NCAAF Saturday still rotates through.
