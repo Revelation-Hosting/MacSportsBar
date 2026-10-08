@@ -19,6 +19,7 @@ struct DeadlineExceeded: Error, CustomStringConvertible {
 func withDeadline<T: Sendable>(
     seconds: Double, _ operation: @escaping @Sendable () async throws -> T
 ) async throws -> T {
+    try Task.checkCancellation()  // a caller that's already given up shouldn't start a request
     let race = FirstFinisher<T>()
     return try await withTaskCancellationHandler {
         try await withCheckedThrowingContinuation { continuation in

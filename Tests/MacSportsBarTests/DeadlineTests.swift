@@ -45,6 +45,39 @@ final class DeadlineTests: XCTestCase {
         XCTAssertLessThan(ContinuousClock.now - started, .seconds(2))
     }
 
+    func testCancelsTheOperationItAbandons() async throws {
+        let cancelled = Flag()
+        do {
+            _ = try await withDeadline(seconds: 0.1) { () async throws -> Int in
+                do { try await Task.sleep(for: .seconds(5)) } catch { cancelled.set() }
+                return 0
+            }
+            XCTFail("expected the deadline to fire")
+        } catch {}
+        // The operation hears about it just after the caller gets control back.
+        for _ in 0..<50 where !cancelled.value { try await Task.sleep(for: .milliseconds(20)) }
+        XCTAssertTrue(cancelled.value, "an abandoned fetch must be cancelled, not left running")
+    }
+
+    func testAlreadyCancelledCallerNeverStartsTheOperation() async {
+        let started = Flag()
+        let caller = Task {
+            try? await Task.sleep(for: .seconds(5))  // ends at once when cancelled
+            return try await withDeadline(seconds: 5) { started.set(); return 1 }
+        }
+        caller.cancel()
+        let result = await caller.result
+        XCTAssertThrowsError(try result.get()) { XCTAssertTrue($0 is CancellationError, "got \($0)") }
+        XCTAssertFalse(started.value)
+    }
+
+    private final class Flag: @unchecked Sendable {
+        private let lock = NSLock()
+        private var isSet = false
+        var value: Bool { lock.lock(); defer { lock.unlock() }; return isSet }
+        func set() { lock.lock(); isSet = true; lock.unlock() }
+    }
+
     /// Finish after `seconds` no matter what — the shape of a socket read that cancellation
     /// can't reach.
     private static func hangIgnoringCancellation(for seconds: Double) async -> Int {

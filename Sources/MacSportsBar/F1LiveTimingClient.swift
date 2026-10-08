@@ -65,28 +65,35 @@ struct F1LiveTimingClient {
         task.resume()
         defer { task.cancel(with: .normalClosure, reason: nil) }
 
-        // SignalR Core handshake, then subscribe. Both are single records.
-        try await task.send(.string(#"{"protocol":"json","version":1}"# + String(Self.recordSeparator)))
-        let subscribe: [String: Any] = [
-            "type": 1, "invocationId": "0", "target": "Subscribe", "arguments": [Self.topics],
-        ]
-        let payload = try JSONSerialization.data(withJSONObject: subscribe)
-        try await task.send(.string(String(decoding: payload, as: UTF8.self) + String(Self.recordSeparator)))
+        // `receive()` ignores task cancellation, so when a deadline or a poll-loop restart gives up
+        // on this read, the socket itself has to be cancelled, or the read and its connection
+        // live on.
+        return try await withTaskCancellationHandler {
+            // SignalR Core handshake, then subscribe. Both are single records.
+            try await task.send(.string(#"{"protocol":"json","version":1}"# + String(Self.recordSeparator)))
+            let subscribe: [String: Any] = [
+                "type": 1, "invocationId": "0", "target": "Subscribe", "arguments": [Self.topics],
+            ]
+            let payload = try JSONSerialization.data(withJSONObject: subscribe)
+            try await task.send(.string(String(decoding: payload, as: UTF8.self) + String(Self.recordSeparator)))
 
-        // The reply to invocation "0" is a type-3 completion carrying the whole state object.
-        for _ in 0..<12 {
-            let message = try await task.receive()
-            guard case .string(let text) = message else { continue }
-            for record in text.split(separator: Self.recordSeparator) {
-                guard let data = record.data(using: .utf8),
-                      let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
-                else { continue }
-                guard object["type"] as? Int == 3, object["invocationId"] as? String == "0" else { continue }
-                guard let state = Self.completionState(object) else { throw ClientError.noSnapshot }
-                return F1LiveSnapshot(raw: state)
+            // The reply to invocation "0" is a type-3 completion carrying the whole state object.
+            for _ in 0..<12 {
+                let message = try await task.receive()
+                guard case .string(let text) = message else { continue }
+                for record in text.split(separator: Self.recordSeparator) {
+                    guard let data = record.data(using: .utf8),
+                          let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+                    else { continue }
+                    guard object["type"] as? Int == 3, object["invocationId"] as? String == "0" else { continue }
+                    guard let state = Self.completionState(object) else { throw ClientError.noSnapshot }
+                    return F1LiveSnapshot(raw: state)
+                }
             }
+            throw ClientError.noSnapshot
+        } onCancel: {
+            task.cancel(with: .goingAway, reason: nil)
         }
-        throw ClientError.noSnapshot
     }
 
     /// A SignalR completion carries its value under `result`, which F1 sends as either the state
@@ -127,7 +134,9 @@ struct F1LiveTimingClient {
 
 /// One decoded state snapshot from F1 live timing. Every accessor is defensive: the feed is
 /// undocumented and shapes drift, so a missing field degrades the readout rather than failing.
-struct F1LiveSnapshot {
+/// `@unchecked Sendable` because `raw` holds `Any`: it's an immutable tree of the plist values
+/// `JSONSerialization` produces, so it's safe to hand across tasks (`withDeadline` does).
+struct F1LiveSnapshot: @unchecked Sendable {
     let raw: [String: Any]
 
     private func topic(_ name: String) -> [String: Any]? { raw[name] as? [String: Any] }

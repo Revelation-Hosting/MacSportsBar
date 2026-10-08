@@ -186,5 +186,41 @@ final class FormulaOneAdapterTests: XCTestCase {
         let board = try JSONDecoder().decode(FormulaOneAdapter.Scoreboard.self, from: Data(json.utf8))
         XCTAssertTrue(FormulaOneAdapter.liveWindowOpen(board.events ?? [], now: date("2026-07-27T09:00:00Z")))
     }
+
+    /// ESPN's default board still showed Malaysia (Oct 2–4) the week of Singapore, whose sessions
+    /// it didn't list yet. The season calendar opens the window for Singapore's weekend anyway.
+    func testLiveWindowOpensForACalendarWeekendTheBoardHasntReached() throws {
+        let json = #"""
+        {"events":[{"competitions":[{"date":"2026-10-04T07:00Z","type":{"abbreviation":"Race"},
+            "status":{"type":{"state":"post","completed":true}}}]}],
+         "leagues":[{"calendar":[
+            {"startDate":"2026-10-02T07:30Z","endDate":"2026-10-04T10:00Z"},
+            {"startDate":"2026-10-09T11:30Z","endDate":"2026-10-11T15:00Z"}]}]}
+        """#
+        let board = try JSONDecoder().decode(FormulaOneAdapter.Scoreboard.self, from: Data(json.utf8))
+        let weekends = try XCTUnwrap(board.leagues?.first?.calendar)
+        func open(_ iso: String) -> Bool {
+            FormulaOneAdapter.liveWindowOpen(board.events ?? [], weekends: weekends, now: date(iso))
+        }
+        XCTAssertTrue(open("2026-10-09T08:30:00Z"), "Singapore FP1, before the calendar's own start")
+        XCTAssertTrue(open("2026-10-11T18:00:00Z"), "3h after Singapore's calendar end")
+        XCTAssertFalse(open("2026-10-07T12:00:00Z"), "the Wednesday between the two")
+        XCTAssertFalse(open("2026-10-11T20:00:00Z"), "Sunday evening, well after the race")
+    }
+
+    /// Other ESPN leagues send the calendar as bare date strings. If F1's ever does, the
+    /// scoreboard must still decode, just without weekends.
+    func testCalendarOfPlainDatesStillDecodesTheBoard() throws {
+        let json = #"{"events":[{"id":"1"}],"leagues":[{"calendar":["2026-10-09T07:00Z"]}]}"#
+        let board = try JSONDecoder().decode(FormulaOneAdapter.Scoreboard.self, from: Data(json.utf8))
+        XCTAssertEqual(board.events?.count, 1)
+        XCTAssertNil(board.leagues?.first?.calendar)
+    }
+
+    func testLiveWindowFailsOpenOnAnUnreadableSessionDate() throws {
+        let json = #"{"events":[{"competitions":[{"date":"Fri TBD","type":{"abbreviation":"FP1"}}]}]}"#
+        let board = try JSONDecoder().decode(FormulaOneAdapter.Scoreboard.self, from: Data(json.utf8))
+        XCTAssertTrue(FormulaOneAdapter.liveWindowOpen(board.events ?? [], now: date("2026-07-29T12:00:00Z")))
+    }
 }
 
