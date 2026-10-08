@@ -43,8 +43,10 @@ struct FormulaOneAdapter: SportAdapter {
         let teams = await constructors()
         var events = (payload.events ?? []).flatMap { map($0, constructors: teams) }
 
-        // Live only concerns today's sessions, so skip it for adjacent-day window fetches.
-        guard dates == nil, let snapshot = await liveSnapshot(),
+        // Live only concerns today's sessions, so skip it for adjacent-day window fetches, and
+        // for any time no session is on (see `liveWindowOpen`).
+        guard dates == nil, Self.liveWindowOpen(payload.events ?? [], now: Date()),
+              let snapshot = await liveSnapshot(),
               let live = Self.liveReadout(from: snapshot) else { return events }
         let index = events.firstIndex { Self.matches(event: $0, live: live) }
 
@@ -263,6 +265,23 @@ struct FormulaOneAdapter: SportAdapter {
     }
 
     // MARK: - Helpers
+
+    /// Whether F1's live feed is worth asking: a session ESPN shows in progress, or one that
+    /// starts within `lead` or started within `span` (long enough for a red-flagged race). Practice
+    /// counts, since the feed shows it live even though the schedule skips it. Asking only then
+    /// keeps the app off the feed's WebSocket the rest of the week — that read once hung through
+    /// a sleep and froze every league for days. Pure — a tested seam.
+    nonisolated static func liveWindowOpen(
+        _ events: [Scoreboard.Event], now: Date,
+        lead: TimeInterval = 15 * 60, span: TimeInterval = 4 * 3600
+    ) -> Bool {
+        events.flatMap { $0.competitions ?? [] }.contains { session in
+            if isCanceled(session.status) { return false }
+            if session.status?.type?.state == "in" { return true }
+            guard let start = parseDate(session.date) else { return false }
+            return start.timeIntervalSince(now) <= lead && now.timeIntervalSince(start) <= span
+        }
+    }
 
     /// ESPN marks a cancelled Grand Prix `state: "post"` with `completed: false`, which would
     /// otherwise read as a finished race. Pure — a tested seam.

@@ -117,7 +117,9 @@ Two honest caveats:
   *and* the session reports as running.
 
 The connect-per-poll approach (negotiate → subscribe → read one snapshot → close, well under a
-second) keeps this a low-volume, well-behaved client on an undocumented endpoint.
+second) keeps this a low-volume, well-behaved client on an undocumented endpoint. And it only
+connects around a session (from 15 minutes before one starts to 4 hours after), so the rest of the
+week the app never opens the socket at all.
 
 ---
 
@@ -250,6 +252,15 @@ Polling is adaptive and deliberately gentle: slow (every 5 min) when nothing is 
 (5–10s) when a relevant event is in progress — and it **ramps up as a favorite's scheduled
 start nears** (every minute within 15 min, every 20s in the final stretch) so tip-off is caught
 promptly rather than on the slow idle tick.
+
+Every league's fetch has a 30-second deadline, so one request that never answers (say, a
+connection the Mac's sleep left hanging) costs that league one refresh instead of freezing every
+sport. If the loop still stops making progress, a watchdog restarts it, and **Refresh Now**
+restarts it too. To see what the loop has been doing, read its log:
+
+```bash
+log show --last 1d --predicate 'subsystem == "com.revelationhosting.macsportsbar"'
+```
 
 How the code is organized — the adapter pattern, the data flow, and how to add a league or a new
 sport — is in **[ARCHITECTURE.md](ARCHITECTURE.md)**. The product design, per-sport display formats,

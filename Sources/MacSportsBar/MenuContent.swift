@@ -33,7 +33,7 @@ struct MenuContent: View {
         Divider()
 
         Button("Refresh Now") {
-            Task { await model.refresh() }
+            model.refreshNow()
         }
         Button("Settings…") {
             NSApp.activate(ignoringOtherApps: true)

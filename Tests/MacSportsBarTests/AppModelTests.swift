@@ -117,4 +117,15 @@ final class AppModelTests: XCTestCase {
             isFavorite: favorite, sortPriority: 0, date: start
         )
     }
+
+    // MARK: - pollLoopStalled(idleFor:interval:)
+
+    func testPollLoopStalledOnlyPastItsIntervalPlusGrace() {
+        let idle = Duration.seconds(300)
+        XCTAssertFalse(AppModel.pollLoopStalled(idleFor: .seconds(800), interval: idle), "a slow pass")
+        XCTAssertTrue(AppModel.pollLoopStalled(idleFor: .seconds(901), interval: idle))
+        XCTAssertTrue(AppModel.pollLoopStalled(idleFor: .seconds(631), interval: .seconds(30)),
+                      "a live-cadence loop is caught sooner")
+    }
 }
+
