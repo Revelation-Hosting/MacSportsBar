@@ -41,7 +41,7 @@ window), and renders a single menu-bar image.
 | `LeagueCatalog.swift` | The league registry. Adding a league = one `SupportedLeague` entry here. |
 | `AppModel.swift` | `@MainActor` brain: the poll loop, adaptive cadence, ranking, cycling, the favorites window, and the menu-bar render. Also defines `MenuBarPresenter`. |
 | `MacSportsBarApp.swift` | App entry, `MenuBarExtra` scene, the `--smoke-test` path, the accessory (agent) activation policy. |
-| `MenuContent.swift` | The dropdown shown on click (favorites digest, pin toggles, Settings/Quit). |
+| `MenuContent.swift` | The dropdown shown on click: favorites at the top level, every other shown game in a flyout per league (`MenuLayout`, a tested seam), pin toggles, Settings/Quit. |
 | `Settings.swift` / `SettingsView.swift` | `UserDefaults`-backed settings + the configuration window (sport toggles, team picker, notifications). |
 | `NotificationManager.swift` | Favorite-team boundary notifications (start / period / final), each independently toggleable. |
 | `LogoCache.swift` / `TeamDirectory.swift` | Async team-logo loading for the menu bar, and the per-league team list for the favorites picker. |

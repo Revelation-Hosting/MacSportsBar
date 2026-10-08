@@ -55,27 +55,30 @@ struct RacingAdapter: SportAdapter {
         let state = event.status?.type?.state ?? "pre"
         let isFav = isFavorite(leader?.athlete)
         let id = event.id ?? short
+        // Stamped in every state, as the team adapters do: the stale-final rule can only age out
+        // a result it has a date for, and ESPN keeps serving the last race until the next one — an
+        // undated final ("Kansas · #5 won") sat in the menu for days.
+        let start = parseDate(event.date)
 
         switch state {
         case "in":
             let detail = leaderName.flatMap { $0.isEmpty ? nil : "\($0) leading" } ?? "In Progress"
             return SportEvent(id: id, league: league, state: .live,
                               displayString: "\(short) · \(detail)",
-                              isFavorite: isFav, sortPriority: isFav ? 1000 : 800)
+                              isFavorite: isFav, sortPriority: isFav ? 1000 : 800, date: start)
 
         case "post":
             let detail = leaderName.flatMap { $0.isEmpty ? nil : "\($0) won" } ?? "Final"
             return SportEvent(id: id, league: league, state: .final,
                               displayString: "\(short) · \(detail)",
-                              isFavorite: isFav, sortPriority: isFav ? 300 : 100)
+                              isFavorite: isFav, sortPriority: isFav ? 300 : 100, date: start)
 
         default: // "pre"
-            let start = parseDate(event.date)
             let when = start.map { Self.dateFormatter.string(from: $0) }
                 ?? (event.status?.type?.shortDetail ?? "")
             return SportEvent(id: id, league: league, state: .pre(startDate: start),
                               displayString: when.isEmpty ? "\(short) · Cup" : "\(short) · Cup · \(when)",
-                              isFavorite: isFav, sortPriority: isFav ? 600 : 400)
+                              isFavorite: isFav, sortPriority: isFav ? 600 : 400, date: start)
         }
     }
 

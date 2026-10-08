@@ -14,11 +14,13 @@ import Foundation
 /// second. That fits the existing poll loop, avoids long-lived-socket reconnection handling, and
 /// keeps us a low-volume, well-behaved client on an undocumented endpoint.
 ///
-/// ⚠️ Two operational realities, both handled by callers:
+/// ⚠️ Three operational realities:
 /// 1. **The snapshot lies between sessions** — it serves the last session's frozen state
 ///    indefinitely. Never render it without checking `isLive` (see `F1LiveSnapshot`).
 /// 2. **Some networks are blocked.** F1 fronts this with an AWS WAF that rejects hosting/VPN
 ///    egress ranges with a 403. Treat unreachability as normal and degrade to ESPN.
+/// 3. **A WebSocket read has no timeout of its own.** `snapshot()` bounds it with a watchdog
+///    (see `readSnapshot`); without one, a socket that dies mid-read stalls every league's poll.
 struct F1LiveTimingClient {
     var host = "livetiming.formula1.com"
     var timeout: TimeInterval = 12
@@ -60,10 +62,31 @@ struct F1LiveTimingClient {
         request.setValue(userAgent, forHTTPHeaderField: "User-Agent")
         request.setValue("https://www.formula1.com", forHTTPHeaderField: "Origin")
         if let cookie { request.setValue(cookie, forHTTPHeaderField: "Cookie") }
+        return try await readSnapshot(request, session: session)
+    }
 
+    /// Upgrade to the WebSocket, subscribe, and read the completion frame carrying full state —
+    /// all within `timeout`, however the socket behaves.
+    ///
+    /// The deadline is enforced by hand because `URLSessionWebSocketTask.receive()` does **not**
+    /// honour the request's `timeoutInterval`: once the upgrade succeeds, a socket that goes quiet
+    /// leaves `receive()` pending forever. That happens for real when a Mac sleeps mid-read and the
+    /// connection dies silently with it — and since the poll loop awaits each league in turn, one
+    /// stuck read froze the whole menu bar (a Saturday race sat at "L1/51" for three days, and no
+    /// other sport refreshed either). Cancelling the task is what unblocks a pending `receive()`,
+    /// so a watchdog does exactly that. It sleeps on the continuous clock, which keeps counting
+    /// while the Mac is asleep, so a read stranded by sleep is abandoned as soon as it wakes.
+    func readSnapshot(_ request: URLRequest, session: URLSession) async throws -> F1LiveSnapshot {
         let task = session.webSocketTask(with: request)
         task.resume()
-        defer { task.cancel(with: .normalClosure, reason: nil) }
+        let watchdog = Task { [timeout] in
+            try await Task.sleep(for: .seconds(timeout), clock: .continuous)
+            task.cancel(with: .goingAway, reason: nil)
+        }
+        defer {
+            watchdog.cancel()
+            task.cancel(with: .normalClosure, reason: nil)
+        }
 
         // `receive()` ignores task cancellation, so when a deadline or a poll-loop restart gives up
         // on this read, the socket itself has to be cancelled, or the read and its connection
