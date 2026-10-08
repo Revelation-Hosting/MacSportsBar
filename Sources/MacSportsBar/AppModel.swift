@@ -354,16 +354,20 @@ final class AppModel: ObservableObject {
         Self.rotationSet(
             live: shown.filter(\.isLive),
             windowNonLive: favoritesDigest.filter { !$0.isLive },
+            upcomingFavorites: shown.filter { $0.isFavorite && !$0.isLive && !$0.isFinal },
             includeFinished: settings.cycleFinished,
             includeUpcoming: settings.cycleUpcoming,
             fallback: shown)
     }
 
     /// The rotation set: live games always, plus the favorites window's recent finals and/or
-    /// upcoming games per the two switches. Falls back to the single top event when nothing's
-    /// live and neither switch contributes. Pure — the seam the tests exercise.
+    /// upcoming games per the two switches. "Upcoming" also takes every not-yet-started favorite
+    /// on the current boards (soonest first), not just the next 24h: football's board carries the
+    /// whole week, and cutting it at 24h left a quiet weekday with nothing to rotate, freezing the
+    /// bar on one game for days. Falls back to the single top event when nothing's live and
+    /// neither switch contributes. Pure — the seam the tests exercise.
     nonisolated static func rotationSet(
-        live: [SportEvent], windowNonLive: [SportEvent],
+        live: [SportEvent], windowNonLive: [SportEvent], upcomingFavorites: [SportEvent],
         includeFinished: Bool, includeUpcoming: Bool, fallback: [SportEvent]
     ) -> [SportEvent] {
         var result = live
@@ -371,6 +375,18 @@ final class AppModel: ObservableObject {
         for event in windowNonLive {
             let include = event.isFinal ? includeFinished : includeUpcoming
             if include, seen.insert(event.id).inserted { result.append(event) }
+        }
+        if includeUpcoming {
+            // Golf leaves `date` unset and carries its start only in the state.
+            func start(_ event: SportEvent) -> Date {
+                if let date = event.date { return date }
+                if case .pre(let startDate?) = event.state { return startDate }
+                return .distantFuture
+            }
+            for event in upcomingFavorites.sorted(by: { start($0) < start($1) })
+            where seen.insert(event.id).inserted {
+                result.append(event)
+            }
         }
         return result.isEmpty ? Array(fallback.prefix(1)) : result
     }
