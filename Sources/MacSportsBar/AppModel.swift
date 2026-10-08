@@ -1,6 +1,7 @@
 import SwiftUI
 import Combine
 import AppKit
+import os
 
 /// Owns the polling loop, the ranked event list, and the cycling/truncation logic that
 /// decides the single string shown in the menu bar. Reads everything user-tunable from the
@@ -76,14 +77,44 @@ final class AppModel: ObservableObject {
     private let idleInterval: Duration = .seconds(300)
     /// Cadence chosen after the last fetch, based on what's currently live.
     private var currentInterval: Duration = .seconds(30)
+    /// Longest one league's fetch may take before it's abandoned (see `withDeadline`).
+    private let fetchDeadline: Double = 30
+    /// The awake time by which the poll loop has to show progress again, and what it was doing
+    /// when it last did. Each step pushes the deadline out by its own bound plus `stallGrace`: a
+    /// fetch by `fetchDeadline`, the sleep between passes by its interval. It runs on the clock
+    /// that stops while the Mac sleeps, so a night asleep isn't a stall.
+    private var progressDue = SuspendingClock.now
+    private var currentStep = "starting"
+    private let stallGrace: Duration = .seconds(90)
+    /// Checks for a stalled loop on a run-loop timer: a different mechanism from the
+    /// Swift-concurrency sleeps the loop and its deadlines use, one of which failed to fire.
+    private var stallTimer: Timer?
+
+    /// Poll-loop diagnostics. Notices and errors persist in the unified log, so a stall can be
+    /// traced afterwards: `log show --last 1d --predicate 'subsystem == "com.revelationhosting.macsportsbar"'`.
+    private static let log = Logger(subsystem: "com.revelationhosting.macsportsbar", category: "poll")
 
     init(settings: Settings = .shared) {
         self.settings = settings
         observeSettings()
         logos.onLoad = { [weak self] in self?.updateMenuBar() }
         if settings.notifyFavorites { notifications.requestAuthorizationIfNeeded() }
-        startPolling()
+        observeWake()
+        startPolling(reason: "launch")
         startCycling()
+        stallTimer = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { [weak self] _ in
+            MainActor.assumeIsolated { self?.restartPollingIfStalled() }
+        }
+    }
+
+    /// A full wake (not a Power Nap dark wake) means someone is about to look at the bar: refresh
+    /// at once, which also abandons any pass that a sleep left hanging.
+    private func observeWake() {
+        NSWorkspace.shared.notificationCenter
+            .publisher(for: NSWorkspace.didWakeNotification)
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in self?.startPolling(reason: "wake") }
+            .store(in: &cancellables)
     }
 
     // MARK: - Settings reactivity
@@ -102,7 +133,7 @@ final class AppModel: ObservableObject {
             .debounce(for: .milliseconds(500), scheduler: RunLoop.main)
             .sink { [weak self] in
                 self?.adjacentFetchedAt = nil  // favorites/leagues changed → rebuild the window
-                self?.startPolling()
+                self?.startPolling(reason: "settings changed")
             }
             .store(in: &cancellables)
 
@@ -154,30 +185,74 @@ final class AppModel: ObservableObject {
 
     /// (Re)start the polling loop. Each iteration fetches, then sleeps for an adaptive
     /// interval chosen from what's currently live (spec §7). First iteration fetches at once.
-    private func startPolling() {
+    /// Cancelling the old loop also cancels its pass in flight, which then discards its results.
+    private func startPolling(reason: String) {
+        Self.log.notice("Poll loop starting: \(reason, privacy: .public)")
         pollTask?.cancel()
+        expectProgress(within: .seconds(fetchDeadline), "starting a pass")
         pollTask = Task { [weak self] in
             while !Task.isCancelled {
                 await self?.refresh()
+                // A superseded loop must not push out the deadline its replacement owns.
+                if Task.isCancelled { break }
                 let interval = self?.currentInterval ?? .seconds(60)
+                self?.expectProgress(within: interval, "sleeping \(interval.components.seconds)s between passes")
                 try? await Task.sleep(for: interval)
             }
         }
     }
 
-    func refresh() async {
+    /// Record progress and how long the next step may take before the loop counts as stalled.
+    private func expectProgress(within bound: Duration, _ step: String) {
+        progressDue = SuspendingClock.now + bound + stallGrace
+        currentStep = step
+    }
+
+    /// Refresh Now: restart the loop rather than run a pass beside it, so a click also unsticks a
+    /// loop that has stalled instead of updating the bar once and leaving it frozen again.
+    func refreshNow() {
+        startPolling(reason: "Refresh Now")
+    }
+
+    private func refresh() async {
+        let started = ContinuousClock.now
         var collected: [SportEvent] = []
+        var failed: [String] = []
         for adapter in adapters {
-            do { collected += try await adapter.fetch(using: client) }
-            catch { continue }  // one sport failing must never take down the others
+            if Task.isCancelled { return }
+            do { collected += try await fetch(adapter) }
+            catch is CancellationError { return }
+            catch {
+                // One sport failing must never take down the others.
+                failed.append(adapter.league.displayName)
+                Self.log.error("\(adapter.league.displayName, privacy: .public) fetch failed: \(String(describing: error), privacy: .public)")
+            }
         }
+        // A restart (Refresh Now, the stall watchdog, a settings change) supersedes this pass.
+        if Task.isCancelled { return }
         let marked = Self.applyFollowedLeagues(collected, followed: settings.followedLeagues)
         lastRanked = marked.sorted { $0.sortPriority > $1.sortPriority }
         notifications.process(
             events: lastRanked, enabled: settings.notifyFavorites,
             prefs: .init(start: settings.notifyStart, period: settings.notifyPeriod, final: settings.notifyFinal))
         await updateFavoritesWindow()
+        if Task.isCancelled { return }
         applyDisplay()
+        let elapsed = (ContinuousClock.now - started).formatted(.units(allowed: [.seconds], fractionalPart: .show(length: 1)))
+        Self.log.notice("Refreshed \(collected.count) events in \(elapsed, privacy: .public)\(failed.isEmpty ? "" : " (failed: \(failed.joined(separator: ", ")))", privacy: .public); next in \(self.currentInterval.components.seconds)s")
+    }
+
+    /// One league's fetch, bounded by `fetchDeadline` so a request that never completes costs
+    /// that league one pass instead of freezing every sport.
+    private func fetch(_ adapter: SportAdapter, dates: String? = nil) async throws -> [SportEvent] {
+        if !Task.isCancelled {
+            expectProgress(within: .seconds(fetchDeadline),
+                            "fetching \(adapter.league.displayName)\(dates.map { " for \($0)" } ?? "")")
+        }
+        let client = client
+        return try await withDeadline(seconds: fetchDeadline) {
+            try await adapter.fetch(using: client, dates: dates)
+        }
     }
 
     /// Promote events from a followed series to favorites. Golf and NASCAR have no team to
@@ -202,6 +277,7 @@ final class AppModel: ObservableObject {
     /// recent finals (last 24h), live, and upcoming (next 24h), sorted chronologically.
     private func updateFavoritesWindow() async {
         await refreshAdjacentIfStale()
+        if Task.isCancelled { return }
         favoritesDigest = Self.windowedFavorites(
             from: adjacentFavorites + lastRanked.filter(\.isFavorite), now: Date())
     }
@@ -228,7 +304,6 @@ final class AppModel: ObservableObject {
     private func refreshAdjacentIfStale() async {
         let now = Date()
         if let at = adjacentFetchedAt, now.timeIntervalSince(at) < 900 { return }
-        adjacentFetchedAt = now
         let yesterday = Self.dayFormatter.string(from: now.addingTimeInterval(-86_400))
         let tomorrow = Self.dayFormatter.string(from: now.addingTimeInterval(86_400))
 
@@ -239,12 +314,17 @@ final class AppModel: ObservableObject {
             guard !favs.isEmpty else { continue }
             let adapter = supported.makeAdapter(favs)
             for day in [yesterday, tomorrow] {
-                if let events = try? await adapter.fetch(using: client, dates: day) {
+                if Task.isCancelled { return }
+                if let events = try? await fetch(adapter, dates: day) {
                     collected += events.filter(\.isFavorite)
                 }
             }
         }
+        // Stamp only a complete run. A superseded pass returns above, so its replacement
+        // refetches rather than trusting a half-built window for 15 minutes.
+        if Task.isCancelled { return }
         adjacentFavorites = collected
+        adjacentFetchedAt = now
     }
 
     private static let dayFormatter: DateFormatter = {
@@ -354,9 +434,19 @@ final class AppModel: ObservableObject {
         cycleTask = Task { [weak self] in
             while !Task.isCancelled {
                 try? await Task.sleep(for: period)
+                self?.restartPollingIfStalled()
                 self?.advanceCycle()
             }
         }
+    }
+
+    /// The backstop behind the per-fetch deadlines: restart the poll loop once it has missed its
+    /// progress deadline, whatever stranded it. Checked from the cycle tick and from `stallTimer`,
+    /// two timer mechanisms that both keep running when the poll loop doesn't.
+    private func restartPollingIfStalled() {
+        guard SuspendingClock.now > progressDue else { return }
+        Self.log.error("Poll loop stalled while \(self.currentStep, privacy: .public)")
+        startPolling(reason: "stall watchdog")
     }
 
     private func advanceCycle() {

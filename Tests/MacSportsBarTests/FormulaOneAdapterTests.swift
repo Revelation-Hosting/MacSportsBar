@@ -158,4 +158,69 @@ final class FormulaOneAdapterTests: XCTestCase {
         XCTAssertEqual(entry?.league.sport, "racing", "so it inherits the flag glyph + follow-series UI")
         XCTAssertEqual(entry?.league.displayName, "Formula 1")
     }
+
+    // MARK: - When to ask the live feed
+
+    private func date(_ iso: String) -> Date { ISO8601DateFormatter().date(from: iso)! }
+
+    /// Hungaroring: FP3 10:30Z and qualifying 14:00Z on Saturday, the race 13:00Z on Sunday.
+    func testLiveWindowOpensAroundEachSessionIncludingPractice() throws {
+        let weekend = [try fixture("f1_weekend_in_progress")]
+        func open(_ iso: String) -> Bool { FormulaOneAdapter.liveWindowOpen(weekend, now: date(iso)) }
+        XCTAssertTrue(open("2026-07-25T10:20:00Z"), "10 min before FP3")
+        XCTAssertFalse(open("2026-07-25T08:00:00Z"), "between FP2 and FP3")
+        XCTAssertTrue(open("2026-07-26T16:30:00Z"), "3.5h into a long race")
+        XCTAssertFalse(open("2026-07-26T17:30:00Z"), "4.5h after the race started")
+        XCTAssertFalse(open("2026-07-29T12:00:00Z"), "midweek")
+    }
+
+    func testLiveWindowStaysShutForACancelledWeekend() throws {
+        let bahrain = [try fixture("f1_weekend_canceled")]
+        XCTAssertFalse(FormulaOneAdapter.liveWindowOpen(bahrain, now: date("2026-04-12T15:30:00Z")))
+    }
+
+    /// ESPN's F1 status lags, so a session it still calls in progress keeps the feed in play
+    /// (the feed is what marks it finished) however late it is.
+    func testLiveWindowOpenWhileESPNSaysInProgress() throws {
+        let json = #"{"events":[{"competitions":[{"date":"2026-07-26T13:00Z","type":{"abbreviation":"Race"},"status":{"type":{"state":"in"}}}]}]}"#
+        let board = try JSONDecoder().decode(FormulaOneAdapter.Scoreboard.self, from: Data(json.utf8))
+        XCTAssertTrue(FormulaOneAdapter.liveWindowOpen(board.events ?? [], now: date("2026-07-27T09:00:00Z")))
+    }
+
+    /// ESPN's default board still showed Malaysia (Oct 2–4) the week of Singapore, whose sessions
+    /// it didn't list yet. The season calendar opens the window for Singapore's weekend anyway.
+    func testLiveWindowOpensForACalendarWeekendTheBoardHasntReached() throws {
+        let json = #"""
+        {"events":[{"competitions":[{"date":"2026-10-04T07:00Z","type":{"abbreviation":"Race"},
+            "status":{"type":{"state":"post","completed":true}}}]}],
+         "leagues":[{"calendar":[
+            {"startDate":"2026-10-02T07:30Z","endDate":"2026-10-04T10:00Z"},
+            {"startDate":"2026-10-09T11:30Z","endDate":"2026-10-11T15:00Z"}]}]}
+        """#
+        let board = try JSONDecoder().decode(FormulaOneAdapter.Scoreboard.self, from: Data(json.utf8))
+        let weekends = try XCTUnwrap(board.leagues?.first?.calendar)
+        func open(_ iso: String) -> Bool {
+            FormulaOneAdapter.liveWindowOpen(board.events ?? [], weekends: weekends, now: date(iso))
+        }
+        XCTAssertTrue(open("2026-10-09T08:30:00Z"), "Singapore FP1, before the calendar's own start")
+        XCTAssertTrue(open("2026-10-11T18:00:00Z"), "3h after Singapore's calendar end")
+        XCTAssertFalse(open("2026-10-07T12:00:00Z"), "the Wednesday between the two")
+        XCTAssertFalse(open("2026-10-11T20:00:00Z"), "Sunday evening, well after the race")
+    }
+
+    /// Other ESPN leagues send the calendar as bare date strings. If F1's ever does, the
+    /// scoreboard must still decode, just without weekends.
+    func testCalendarOfPlainDatesStillDecodesTheBoard() throws {
+        let json = #"{"events":[{"id":"1"}],"leagues":[{"calendar":["2026-10-09T07:00Z"]}]}"#
+        let board = try JSONDecoder().decode(FormulaOneAdapter.Scoreboard.self, from: Data(json.utf8))
+        XCTAssertEqual(board.events?.count, 1)
+        XCTAssertNil(board.leagues?.first?.calendar)
+    }
+
+    func testLiveWindowFailsOpenOnAnUnreadableSessionDate() throws {
+        let json = #"{"events":[{"competitions":[{"date":"Fri TBD","type":{"abbreviation":"FP1"}}]}]}"#
+        let board = try JSONDecoder().decode(FormulaOneAdapter.Scoreboard.self, from: Data(json.utf8))
+        XCTAssertTrue(FormulaOneAdapter.liveWindowOpen(board.events ?? [], now: date("2026-07-29T12:00:00Z")))
+    }
 }
+

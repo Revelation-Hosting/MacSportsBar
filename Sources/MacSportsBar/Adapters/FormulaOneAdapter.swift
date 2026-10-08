@@ -43,8 +43,12 @@ struct FormulaOneAdapter: SportAdapter {
         let teams = await constructors()
         var events = (payload.events ?? []).flatMap { map($0, constructors: teams) }
 
-        // Live only concerns today's sessions, so skip it for adjacent-day window fetches.
-        guard dates == nil, let snapshot = await liveSnapshot(),
+        // Live only concerns today's sessions, so skip it for adjacent-day window fetches, and
+        // for any time no session is on (see `liveWindowOpen`).
+        guard dates == nil,
+              Self.liveWindowOpen(payload.events ?? [],
+                                  weekends: payload.leagues?.first?.calendar ?? [], now: Date()),
+              let snapshot = await liveSnapshotWithinDeadline(),
               let live = Self.liveReadout(from: snapshot) else { return events }
         let index = events.firstIndex { Self.matches(event: $0, live: live) }
 
@@ -66,6 +70,13 @@ struct FormulaOneAdapter: SportAdapter {
             events.append(Self.liveEvent(live, league: league))
         }
         return events
+    }
+
+    /// The live feed is an enhancement, so it gets its own, shorter deadline: a hung feed then
+    /// costs this pass its live overlay, not F1's ESPN schedule and results along with it.
+    private func liveSnapshotWithinDeadline() async -> F1LiveSnapshot? {
+        let liveSnapshot = liveSnapshot
+        return try? await withDeadline(seconds: 15) { await liveSnapshot() }
     }
 
     // MARK: - Mapping
@@ -264,6 +275,35 @@ struct FormulaOneAdapter: SportAdapter {
 
     // MARK: - Helpers
 
+    /// Whether F1's live feed is worth asking: a session ESPN shows in progress, one that starts
+    /// within `lead` or started within `span` (long enough for a red-flagged race), or a race
+    /// weekend on the season calendar. Practice counts, since the feed shows it live even though
+    /// the schedule skips it. Asking only then keeps the app off the feed's WebSocket the rest of
+    /// the week — that read once hung through a sleep and froze every league for days.
+    ///
+    /// The calendar is there because ESPN's default board sticks to the last race for days
+    /// (still Malaysia the Wednesday before Singapore), so it may not list a weekend's sessions
+    /// until after FP1 has begun. Its dates sit a few hours off the sessions, hence the wide
+    /// margin before. Pure — a tested seam.
+    nonisolated static func liveWindowOpen(
+        _ events: [Scoreboard.Event], weekends: [Scoreboard.Weekend] = [], now: Date,
+        lead: TimeInterval = 15 * 60, span: TimeInterval = 4 * 3600
+    ) -> Bool {
+        let sessionOn = events.flatMap { $0.competitions ?? [] }.contains { session in
+            if isCanceled(session.status) { return false }
+            if session.status?.type?.state == "in" { return true }
+            // Fail open: a date we can't read shouldn't cost a live session.
+            guard let start = parseDate(session.date) else { return true }
+            return start.timeIntervalSince(now) <= lead && now.timeIntervalSince(start) <= span
+        }
+        let weekendOn = weekends.contains { weekend in
+            guard let start = parseDate(weekend.startDate), let end = parseDate(weekend.endDate)
+            else { return false }
+            return now >= start.addingTimeInterval(-12 * 3600) && now <= end.addingTimeInterval(span)
+        }
+        return sessionOn || weekendOn
+    }
+
     /// ESPN marks a cancelled Grand Prix `state: "post"` with `completed: false`, which would
     /// otherwise read as a finished race. Pure — a tested seam.
     nonisolated static func isCanceled(_ status: Scoreboard.Status?) -> Bool {
@@ -366,6 +406,25 @@ struct FormulaOneAdapter: SportAdapter {
 extension FormulaOneAdapter {
     struct Scoreboard: Decodable {
         let events: [Event]?
+        let leagues: [League]?
+
+        struct League: Decodable {
+            /// The season's race weekends. Decoded leniently: other ESPN leagues send plain date
+            /// strings here, and a shape change must not cost F1 its whole scoreboard.
+            let calendar: [Weekend]?
+
+            init(from decoder: Decoder) throws {
+                let container = try decoder.container(keyedBy: CodingKeys.self)
+                calendar = try? container.decode([Weekend].self, forKey: .calendar)
+            }
+
+            private enum CodingKeys: String, CodingKey { case calendar }
+        }
+
+        struct Weekend: Decodable {
+            let startDate: String?
+            let endDate: String?
+        }
 
         struct Event: Decodable {
             let id: String?
