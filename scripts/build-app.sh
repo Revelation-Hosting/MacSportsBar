@@ -19,6 +19,9 @@ APP="${APP_NAME}.app"
 BIN=".build/release/${APP_NAME}"
 ICON_SRC="Resources/AppIcon.icon"
 
+# The commit this build came from, for the in-app update check (blank outside a git checkout).
+GIT_COMMIT="$(git rev-parse HEAD 2>/dev/null || true)"
+
 echo "▸ Building release binary…"
 swift build -c release
 
@@ -54,6 +57,7 @@ cat > "$APP/Contents/Info.plist" <<PLIST
     <key>CFBundlePackageType</key><string>APPL</string>
     <key>CFBundleShortVersionString</key><string>${VERSION}</string>
     <key>CFBundleVersion</key><string>${VERSION}</string>
+    <key>MSBGitCommit</key><string>${GIT_COMMIT}</string>
     <key>LSMinimumSystemVersion</key><string>${MIN_MACOS}</string>
     <key>LSUIElement</key><true/>
     <key>NSHumanReadableCopyright</key><string>© 2026 Revelation Hosting. MIT licensed.</string>

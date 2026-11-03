@@ -104,6 +104,10 @@ struct SettingsView: View {
                 Text("Favorites only — never on every score. Period/inning alerts are off by default (a notification per inning is a lot). Requires the installed app (see scripts/build-app.sh), not `swift run`.")
                     .font(.caption).foregroundStyle(.secondary)
             }
+
+            Section("Updates") {
+                UpdatesRows(updater: Updater.shared)
+            }
         }
         .formStyle(.grouped)
         .frame(width: 440, height: 540)
@@ -138,6 +142,72 @@ struct SettingsView: View {
             get: { settings.isFollowingLeague(id) },
             set: { settings.setFollowingLeague(id, on: $0) }
         )
+    }
+}
+
+/// The installed build, plus the check → update flow. See `Updater`.
+private struct UpdatesRows: View {
+    @ObservedObject var updater: Updater
+
+    var body: some View {
+        LabeledContent("Installed version", value: updater.build.label)
+        if updater.build.appBundle == nil {
+            Text("Updates replace the packaged app, and this is running from `swift run`. Use `git pull` instead.")
+                .font(.caption).foregroundStyle(.secondary)
+        } else {
+            flow
+        }
+    }
+
+    @ViewBuilder private var flow: some View {
+        switch updater.state {
+        case .idle:
+            Button("Check for Updates") { updater.check() }
+        case .checking:
+            progress("Checking GitHub…")
+        case .upToDate:
+            Text("You're up to date.")
+            Button("Check Again") { updater.check() }
+        case .available(let newCommits, let subjects):
+            available(newCommits: newCommits, subjects: subjects)
+        case .installing(.downloading):
+            progress("Downloading the latest source…")
+        case .installing(.building):
+            progress("Building… this can take a few minutes. You can close this window; the app relaunches when it's done.")
+        case .installing(.installing):
+            progress("Installing…")
+        case .failed(let message, let hasLog):
+            Text(message).font(.caption).foregroundStyle(.secondary)
+            HStack {
+                Button("Check Again") { updater.check() }
+                if hasLog {
+                    Button("Show Log") { NSWorkspace.shared.open(updater.logFile) }
+                }
+            }
+        }
+    }
+
+    @ViewBuilder private func available(newCommits: Int?, subjects: [String]) -> some View {
+        if let newCommits {
+            Text(newCommits == 1 ? "1 new commit on main" : "\(newCommits) new commits on main")
+            ForEach(subjects, id: \.self) { subject in
+                Text("• \(subject)").font(.caption).foregroundStyle(.secondary)
+            }
+            if newCommits > subjects.count {
+                Text("…and \(newCommits - subjects.count) more").font(.caption).foregroundStyle(.secondary)
+            }
+        } else {
+            Text("This build's commit isn't on GitHub, so it can't be compared. You can still install the latest from main.")
+                .font(.caption).foregroundStyle(.secondary)
+        }
+        Button("Update and Relaunch") { updater.install() }
+    }
+
+    private func progress(_ message: String) -> some View {
+        HStack(spacing: 8) {
+            ProgressView().controlSize(.small)
+            Text(message).font(.caption).foregroundStyle(.secondary)
+        }
     }
 }
 

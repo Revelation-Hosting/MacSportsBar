@@ -182,11 +182,27 @@ General ▸ Login Items** to start it at login.
 > for a seamless install you'd sign + notarize with an Apple Developer account ($99/yr). That
 > remains out of scope for the POC.
 
+### Updating
+
+Once you've installed a build that includes the updater, there's no need to touch the terminal
+again. Open **Settings…**, scroll to **Updates**, and click **Check for Updates**. If `main` has
+new commits, you'll see what changed and an **Update and Relaunch** button.
+
+Updating is the same as a manual install, just run by the app: it clones `main` into a temporary
+folder, builds it with `scripts/build-app.sh`, swaps the new `.app` in over the running one, and
+relaunches. It can take a few minutes and needs the same toolchain as any other build. If the
+download or build fails, your installed app stays as it was, and **Show Log** opens
+`~/Library/Logs/MacSportsBar/update.log`.
+
+Because the app builds and runs whatever is on `main`, updating trusts that branch as much as
+`git pull && ./scripts/build-app.sh` does. Your settings carry over, and Gatekeeper doesn't ask
+again because the build happens on your own Mac.
+
 ---
 
 ## Tests
 
-The deterministic model and formatting logic is covered by **216 hermetic XCTest cases** —
+The deterministic model and formatting logic is covered by **247 hermetic XCTest cases** —
 every adapter's decode → format path (basketball; baseball with base/out state; the generic
 head-to-head adapter for football, hockey, and soccer; the golf leaderboard; NASCAR's ESPN
 baseline; and the NASCAR live-feed mapping with its flag-state enum), period/inning labels,
