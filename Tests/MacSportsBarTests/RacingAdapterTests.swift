@@ -62,6 +62,34 @@ final class RacingAdapterTests: XCTestCase {
         guard case .final = mapped.state else { return XCTFail("expected .final") }
     }
 
+    func testEveryStateCarriesTheRaceDate() throws {
+        // Regression: only upcoming races were dated, so a finished race never aged out of the
+        // menu — ESPN served Sunday's Kansas result until midweek.
+        let start = Date(timeIntervalSince1970: 1_790_535_600)  // 2026-09-27T19:00Z
+        for state in ["pre", "in", "post"] {
+            let json = """
+            {"events":[{"id":"r5","name":"NASCAR Cup Series at Kansas","date":"2026-09-27T19:00Z",
+              "status":{"type":{"state":"\(state)"}},
+              "competitions":[{"competitors":[{"order":1,"athlete":{"displayName":"Kyle Larson"}}]}]}]}
+            """
+            XCTAssertEqual(adapter().map(try firstEvent(json)).date, start, state)
+        }
+    }
+
+    func testFinishedRaceAgesOutAfterADay() throws {
+        let json = """
+        {"events":[{"id":"r6","name":"NASCAR Cup Series at Kansas","date":"2026-09-27T19:00Z",
+          "status":{"type":{"state":"post"}},
+          "competitions":[{"competitors":[{"order":1,"athlete":{"displayName":"Kyle Larson"}}]}]}]}
+        """
+        let final = adapter().map(try firstEvent(json))
+        let start = try XCTUnwrap(final.date)
+        XCTAssertEqual(AppModel.freshDisplayEvents([final], now: start.addingTimeInterval(20 * 3600)).count, 1,
+                       "the evening after, the result still shows")
+        XCTAssertTrue(AppModel.freshDisplayEvents([final], now: start.addingTimeInterval(46 * 3600)).isEmpty,
+                      "by Tuesday it's gone")
+    }
+
     func testFavoriteDriverLeading() throws {
         let json = """
         {"events":[{"id":"r4","name":"NASCAR Cup Series at Michigan","status":{"type":{"state":"in"}},
