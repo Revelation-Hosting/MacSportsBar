@@ -202,7 +202,7 @@ again because the build happens on your own Mac.
 
 ## Tests
 
-The deterministic model and formatting logic is covered by **247 hermetic XCTest cases** —
+The deterministic model and formatting logic is covered by **257 hermetic XCTest cases** —
 every adapter's decode → format path (basketball; baseball with base/out state; the generic
 head-to-head adapter for football, hockey, and soccer; the golf leaderboard; NASCAR's ESPN
 baseline; and the NASCAR live-feed mapping with its flag-state enum), period/inning labels,
