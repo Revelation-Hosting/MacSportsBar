@@ -44,6 +44,7 @@ window), and renders a single menu-bar image.
 | `MenuContent.swift` | The dropdown shown on click (favorites digest, pin toggles, Settings/Quit). |
 | `Settings.swift` / `SettingsView.swift` | `UserDefaults`-backed settings + the configuration window (sport toggles, team picker, notifications). |
 | `NotificationManager.swift` | Favorite-team boundary notifications (start / period / final), each independently toggleable. |
+| `Updater.swift` | The Settings window's update flow: compare this build's commit to `main`, then fetch, build, swap and relaunch. |
 | `LogoCache.swift` / `TeamDirectory.swift` | Async team-logo loading for the menu bar, and the per-league team list for the favorites picker. |
 
 ## Core abstractions
@@ -132,6 +133,18 @@ tick.
 independently; period/inning defaults off (it's the noisy one). The boundary classifier is a pure,
 tested function. Requires the bundled `.app` (a bundle identifier + the user's permission); it's a
 no-op under `swift run`.
+
+## Updates
+
+The app is only ever built from source, so an update is a source build too, not a downloaded
+binary. `scripts/build-app.sh` records the commit in `Info.plist` (`MSBGitCommit`), and `UpdateClient`
+asks GitHub's compare API how that commit relates to `main`. `UpdateInstaller` then shallow-clones
+`main` to a scratch folder, runs the build script, and exchanges the result with the running bundle
+using `renamex_np(RENAME_SWAP)`. It replaces whichever `.app` is running, wherever that lives.
+
+Everything that can fail happens before the exchange, and the exchange is atomic, so a failed update
+leaves the installed app untouched. Tests run the pipeline against a local git repo with a stand-in
+build script, which keeps them hermetic.
 
 ## Testing
 
