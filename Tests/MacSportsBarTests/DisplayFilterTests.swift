@@ -69,10 +69,17 @@ final class DisplayFilterTests: XCTestCase {
     // MARK: - Settings side: which filters are *actively* in force
 
     private func freshSettings() -> Settings {
-        let suite = "MacSportsBarTests.favOnly.\(UUID().uuidString)"
+        Settings(defaults: defaultsWithEveryLeagueSeen("favOnly"))
+    }
+
+    /// An install that has already seen every league, so no league's first-run default filter
+    /// (see `LeagueMigrationTests`) muddies assertions about the rest of the filter logic.
+    private func defaultsWithEveryLeagueSeen(_ name: String) -> UserDefaults {
+        let suite = "MacSportsBarTests.\(name).\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suite)!
         defaults.removePersistentDomain(forName: suite)
-        return Settings(defaults: defaults)
+        defaults.set(LeagueCatalog.all.map(\.id), forKey: "seenLeagues")
+        return defaults
     }
 
     func testFavoritesOnlyIsInertUntilTheLeagueHasFavorites() {
@@ -109,9 +116,7 @@ final class DisplayFilterTests: XCTestCase {
     }
 
     func testFiltersPersistAndAllClearsTheEntry() {
-        let suite = "MacSportsBarTests.favOnlyPersist.\(UUID().uuidString)"
-        let defaults = UserDefaults(suiteName: suite)!
-        defaults.removePersistentDomain(forName: suite)
+        let defaults = defaultsWithEveryLeagueSeen("favOnlyPersist")
         let first = Settings(defaults: defaults)
         first.setFilter(.favorites, for: "nba")
         first.setFilter(.ranked, for: "college-football")
@@ -138,18 +143,14 @@ final class DisplayFilterTests: XCTestCase {
     }
 
     func testInterimFavoritesOnlySetMigrates() {
-        let suite = "MacSportsBarTests.favOnlyMigrateSet.\(UUID().uuidString)"
-        let defaults = UserDefaults(suiteName: suite)!
-        defaults.removePersistentDomain(forName: suite)
+        let defaults = defaultsWithEveryLeagueSeen("favOnlyMigrateSet")
         defaults.set(["eng.1", "usa.1"], forKey: "favoritesOnlyLeagues")
         XCTAssertEqual(Settings(defaults: defaults).leagueFilters,
                        ["eng.1": .favorites, "usa.1": .favorites])
     }
 
     func testLegacySwitchOffMigratesToNothingFiltered() {
-        let suite = "MacSportsBarTests.favOnlyMigrateOff.\(UUID().uuidString)"
-        let defaults = UserDefaults(suiteName: suite)!
-        defaults.removePersistentDomain(forName: suite)
+        let defaults = defaultsWithEveryLeagueSeen("favOnlyMigrateOff")
         defaults.set(false, forKey: "favoritesOnly")
         XCTAssertEqual(Settings(defaults: defaults).leagueFilters, [:])
     }
