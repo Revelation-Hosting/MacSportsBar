@@ -15,7 +15,8 @@ struct BasketballAdapter: SportAdapter {
 
     func fetch(using client: ESPNClient, dates: String?) async throws -> [SportEvent] {
         let payload = try await client.scoreboard(
-            sport: league.sport, league: league.league, dates: dates, as: Scoreboard.self
+            sport: league.sport, league: league.league, dates: dates,
+            query: league.scoreboardQuery, as: Scoreboard.self
         )
         return (payload.events ?? []).compactMap(map)
     }
@@ -38,6 +39,7 @@ struct BasketballAdapter: SportAdapter {
         let state = status?.type?.state ?? "pre"
 
         let isFav = isFavorite(home) || isFavorite(away)
+        let ranked = isRanked(home) || isRanked(away)
         let scoreLine = "\(awayAbbr) \(away.score ?? "0")  \(homeAbbr) \(home.score ?? "0")"
         let gameDate = parseDate(event.date)
 
@@ -53,6 +55,7 @@ struct BasketballAdapter: SportAdapter {
                 displayString: join(scoreLine, detail),
                 isFavorite: isFav,
                 sortPriority: isFav ? 1000 : 800,
+                isRanked: ranked,
                 date: gameDate,
                 period: status?.period,
                 awayLogo: logoURL(away),
@@ -69,6 +72,7 @@ struct BasketballAdapter: SportAdapter {
                 displayString: join(scoreLine, "Final"),
                 isFavorite: isFav,
                 sortPriority: isFav ? 300 : 100,
+                isRanked: ranked,
                 date: gameDate,
                 awayLogo: logoURL(away),
                 homeLogo: logoURL(home),
@@ -87,6 +91,7 @@ struct BasketballAdapter: SportAdapter {
                 displayString: join("\(awayAbbr) vs \(homeAbbr)", timeLabel),
                 isFavorite: isFav,
                 sortPriority: isFav ? 600 : 400,
+                isRanked: ranked,
                 date: gameDate,
                 awayLogo: logoURL(away),
                 homeLogo: logoURL(home),
@@ -114,6 +119,13 @@ struct BasketballAdapter: SportAdapter {
             if period <= 2 { return "\(period)H" }
             return period == 3 ? "OT" : "\(period - 2)OT"
         }
+    }
+
+    /// Whether the competitor is a Top-25 team. ESPN's college feeds carry `curatedRank.current`
+    /// (the AP poll), with unranked teams at 99.
+    private func isRanked(_ competitor: Scoreboard.Competitor) -> Bool {
+        guard let rank = competitor.curatedRank?.current else { return false }
+        return (1...25).contains(rank)
     }
 
     private func isFavorite(_ competitor: Scoreboard.Competitor) -> Bool {
@@ -180,7 +192,10 @@ extension BasketballAdapter {
             let homeAway: String?
             let score: String?
             let team: Team?
+            let curatedRank: Rank?
         }
+
+        struct Rank: Decodable { let current: Int? }
 
         struct Team: Decodable {
             let abbreviation: String?

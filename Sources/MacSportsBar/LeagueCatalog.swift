@@ -27,6 +27,15 @@ enum LeagueCatalog {
             scoreboardQuery: [URLQueryItem(name: "groups", value: "80"),
                               URLQueryItem(name: "limit", value: "300")],
             hasRankings: true)
+        // Same trap as NCAAF: the default board is a small slice (9 games on a night with 69);
+        // `groups=50` selects all of Division I. That can mean 100+ live games at once, which
+        // would take a quarter of an hour to rotate through, so it starts on Top 25 + favorites.
+        let ncaam = LeagueID(
+            sport: "basketball", league: "mens-college-basketball", displayName: "NCAAM",
+            scoreboardQuery: [URLQueryItem(name: "groups", value: "50"),
+                              URLQueryItem(name: "limit", value: "300")],
+            hasRankings: true,
+            defaultFilter: .ranked)
         let epl = LeagueID(sport: "soccer", league: "eng.1", displayName: "Premier League")
         let ucl = LeagueID(sport: "soccer", league: "uefa.champions", displayName: "Champions League")
         let mls = LeagueID(sport: "soccer", league: "usa.1", displayName: "MLS")
@@ -59,6 +68,8 @@ enum LeagueCatalog {
                             makeAdapter: { HeadToHeadAdapter(league: nhl, favorites: $0.tokens, teams: $0.teams, style: .hockey) }),
             SupportedLeague(id: ncaaf.league, league: ncaaf,
                             makeAdapter: { HeadToHeadAdapter(league: ncaaf, favorites: $0.tokens, teams: $0.teams, style: .quarters) }),
+            SupportedLeague(id: ncaam.league, league: ncaam,
+                            makeAdapter: { BasketballAdapter(league: ncaam, favorites: $0.tokens, teams: $0.teams) }),
             SupportedLeague(id: epl.league, league: epl,
                             makeAdapter: { HeadToHeadAdapter(league: epl, favorites: $0.tokens, teams: $0.teams, style: .soccer) }),
             SupportedLeague(id: ucl.league, league: ucl,

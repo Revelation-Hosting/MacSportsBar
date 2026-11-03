@@ -94,10 +94,10 @@ final class Settings: ObservableObject {
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
         let allLeagueIDs = LeagueCatalog.all.map(\.id)
+        let seen = Set(defaults.array(forKey: Key.seenLeagues) as? [String] ?? [])
         if let storedLeagues = defaults.array(forKey: Key.enabledLeagues) as? [String] {
             // Returning user: auto-enable leagues added since they last ran (so new sports
             // appear without a manual toggle), but never re-enable one they've turned off.
-            let seen = Set(defaults.array(forKey: Key.seenLeagues) as? [String] ?? [])
             var enabled = Set(storedLeagues)
             enabled.formUnion(allLeagueIDs.filter { !seen.contains($0) })
             enabledLeagues = enabled
@@ -113,17 +113,29 @@ final class Settings: ObservableObject {
         cycleFinished = defaults.object(forKey: Key.cycleFinished) as? Bool ?? true
         cycleUpcoming = defaults.object(forKey: Key.cycleUpcoming) as? Bool ?? true
         pinnedEventID = defaults.string(forKey: Key.pinnedEventID)
+        var filters: [String: LeagueFilter]
         if let stored = defaults.dictionary(forKey: Key.leagueFilters) as? [String: String] {
-            leagueFilters = stored.compactMapValues(LeagueFilter.init(rawValue:))
+            filters = stored.compactMapValues(LeagueFilter.init(rawValue:))
         } else if let stored = defaults.array(forKey: Key.favoritesOnlyLeagues) as? [String] {
             // Migrate the interim per-league "favorites only" set.
-            leagueFilters = Dictionary(uniqueKeysWithValues: stored.map { ($0, LeagueFilter.favorites) })
+            filters = Dictionary(uniqueKeysWithValues: stored.map { ($0, LeagueFilter.favorites) })
         } else if defaults.bool(forKey: Key.favoritesOnly) {
             // Migrate the old global "show favorites only" switch: it applied to every league.
-            leagueFilters = Dictionary(uniqueKeysWithValues: allLeagueIDs.map { ($0, LeagueFilter.favorites) })
+            filters = Dictionary(uniqueKeysWithValues: allLeagueIDs.map { ($0, LeagueFilter.favorites) })
         } else {
-            leagueFilters = [:]
+            filters = [:]
         }
+        // Give a league its default filter only the first time it's seen: "All" is stored as no
+        // entry, so seeding on every launch would undo a user's choice of "All". Written straight
+        // away because `seenLeagues` is, and the `persist` sinks only fire on later changes.
+        let seeds = LeagueCatalog.all.filter {
+            !seen.contains($0.id) && filters[$0.id] == nil && $0.league.defaultFilter != .all
+        }
+        if !seeds.isEmpty {
+            for league in seeds { filters[league.id] = league.league.defaultFilter }
+            defaults.set(filters.mapValues(\.rawValue), forKey: Key.leagueFilters)
+        }
+        leagueFilters = filters
         notifyFavorites = defaults.object(forKey: Key.notifyFavorites) as? Bool ?? false
         notifyStart = defaults.object(forKey: Key.notifyStart) as? Bool ?? true
         notifyPeriod = defaults.object(forKey: Key.notifyPeriod) as? Bool ?? false  // noisy → off by default

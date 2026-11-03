@@ -38,4 +38,38 @@ final class ESPNClientTests: XCTestCase {
         let nfl = try XCTUnwrap(LeagueCatalog.all.first { $0.id == "nfl" })
         XCTAssertTrue(nfl.league.scoreboardQuery.isEmpty)
     }
+
+    /// The men's board has the same trap (9 games on a night with 69), and the group has to
+    /// survive the adapter too: a fetch that drops `scoreboardQuery` silently gets the slice.
+    func testCollegeBasketballFetchRequestsDivisionI() async throws {
+        let config = URLSessionConfiguration.ephemeral
+        config.protocolClasses = [RecordingURLProtocol.self]
+        let client = ESPNClient(session: URLSession(configuration: config))
+
+        let ncaam = try XCTUnwrap(LeagueCatalog.all.first { $0.id == "mens-college-basketball" })
+        _ = try await ncaam.makeAdapter(.none).fetch(using: client, dates: "20261110")
+
+        let url = try XCTUnwrap(RecordingURLProtocol.lastURL)
+        let items = try XCTUnwrap(URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems)
+        XCTAssertEqual(items.first { $0.name == "groups" }?.value, "50")
+        XCTAssertEqual(items.first { $0.name == "dates" }?.value, "20261110")
+    }
+}
+
+/// Records the requested URL and answers with an empty scoreboard, so no test touches the network.
+private final class RecordingURLProtocol: URLProtocol {
+    nonisolated(unsafe) static var lastURL: URL?
+
+    override class func canInit(with request: URLRequest) -> Bool { true }
+    override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
+
+    override func startLoading() {
+        Self.lastURL = request.url
+        let response = HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!
+        client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
+        client?.urlProtocol(self, didLoad: Data(#"{"events":[]}"#.utf8))
+        client?.urlProtocolDidFinishLoading(self)
+    }
+
+    override func stopLoading() {}
 }

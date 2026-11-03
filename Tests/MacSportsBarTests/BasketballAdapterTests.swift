@@ -99,6 +99,56 @@ final class BasketballAdapterTests: XCTestCase {
         XCTAssertEqual(a.periodLabel(5), "3OT")
     }
 
+    func testLiveNCAAEventUsesHalves() throws {
+        let json = """
+        {"events":[{"id":"gonz","status":{"displayClock":"4:32","period":2,"type":{"state":"in"}},
+          "competitions":[{"competitors":[
+            {"homeAway":"home","score":"68","team":{"abbreviation":"UCLA"}},
+            {"homeAway":"away","score":"72","team":{"abbreviation":"GONZ"}}
+          ]}]}]}
+        """
+        let adapter = BasketballAdapter(league: ncaaLeague, favorites: [])
+        let mapped = try XCTUnwrap(adapter.map(firstEvent(json)))
+        XCTAssertEqual(mapped.displayString, "GONZ 72  UCLA 68 · 4:32 2H")
+    }
+
+    // MARK: - Rankings (feeds the "Top 25 + favorites" filter)
+
+    private func rankedEvent(home: Int?, away: Int?, state: String) throws -> SportEvent {
+        func rank(_ value: Int?) -> String { value.map { #","curatedRank":{"current":\#($0)}"# } ?? "" }
+        let json = """
+        {"events":[{"id":"r","status":{"period":1,"type":{"state":"\(state)"}},
+          "competitions":[{"competitors":[
+            {"homeAway":"home","team":{"abbreviation":"A"}\(rank(home))},
+            {"homeAway":"away","team":{"abbreviation":"B"}\(rank(away))}
+          ]}]}]}
+        """
+        return try XCTUnwrap(BasketballAdapter(league: ncaaLeague, favorites: []).map(firstEvent(json)))
+    }
+
+    func testEitherTop25TeamMarksTheGameRankedInEveryState() throws {
+        for state in ["pre", "in", "post"] {
+            XCTAssertTrue(try rankedEvent(home: 3, away: 99, state: state).isRanked, state)
+            XCTAssertTrue(try rankedEvent(home: 99, away: 25, state: state).isRanked, state)
+        }
+    }
+
+    func testUnrankedOrMissingRankIsNotRanked() throws {
+        XCTAssertFalse(try rankedEvent(home: 99, away: 99, state: "in").isRanked)
+        XCTAssertFalse(try rankedEvent(home: 26, away: 0, state: "in").isRanked)
+        XCTAssertFalse(try rankedEvent(home: nil, away: nil, state: "in").isRanked)
+    }
+
+    func testCatalogOffersNCAAMWithRankingsAndPassesFavorites() throws {
+        let ncaam = try XCTUnwrap(LeagueCatalog.all.first { $0.id == "mens-college-basketball" })
+        XCTAssertTrue(ncaam.league.hasRankings)
+        let adapter = try XCTUnwrap(
+            ncaam.makeAdapter(Favorites(teams: ["gonz"], tokens: ["duke"])) as? BasketballAdapter)
+        XCTAssertEqual(adapter.teams, ["gonz"])
+        XCTAssertEqual(adapter.favorites, ["duke"])
+        XCTAssertEqual(adapter.periodLabel(2), "2H")
+    }
+
     // MARK: - Favorite matching (case-insensitive, multi-field, substring)
 
     func testFavoriteMatching() throws {

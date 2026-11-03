@@ -34,8 +34,8 @@ Coca-Cola 600 · L245/400 · St3 · #5 Larson   ← live NASCAR Cup
 ```
 
 > **Status: pre-alpha proof-of-concept.** Under active development, built milestone by
-> milestone (see [Roadmap](#roadmap)). **Twelve leagues across seven sports** — NBA, MLB, NFL,
-> NHL, NCAA football, soccer (Premier League / Champions League / MLS / **World Cup**), PGA golf,
+> milestone (see [Roadmap](#roadmap)). **Thirteen leagues across seven sports** — NBA, NCAA men's
+> basketball, MLB, NFL, NHL, NCAA football, soccer (Premier League / Champions League / MLS / **World Cup**), PGA golf,
 > NASCAR, and **Formula 1** — render in the menu bar today, each tagged with a league glyph, on an
 > adaptive poll cadence. (NASCAR shows **live lap/stage/flag telemetry** with a colored flag glyph,
 > sourced from NASCAR's own timing feed — ESPN holds no NASCAR rights, so its feed has none.
@@ -62,7 +62,7 @@ Coca-Cola 600 · L245/400 · St3 · #5 Larson   ← live NASCAR Cup
 - A **±24h favorites view** — your teams' recent finals, live games, and upcoming matchups,
   surfaced both in the dropdown digest and the ticker.
 - A **per-league display filter** — each league shows all its games, only your favorites, or
-  (college football) **Top-25 matchups plus your favorites** — so soccer can be favorites-only
+  (college football and basketball) **Top-25 matchups plus your favorites** — so soccer can be favorites-only
   while the whole NCAAF Saturday still rotates through.
 - **Keyless and secret-free** — it uses public, no-auth data endpoints, so there's nothing
   to configure and nothing sensitive to store.
@@ -71,7 +71,7 @@ Coca-Cola 600 · L245/400 · St3 · #5 Larson   ← live NASCAR Cup
 
 | Sport            | Leagues                         | Shape          | Status   |
 |------------------|---------------------------------|----------------|----------|
-| Basketball       | NBA                             | head-to-head   | **live (M1)** |
+| Basketball       | NBA, NCAA men's                 | head-to-head   | **live (M1)** |
 | Baseball         | MLB (base/out state)            | head-to-head   | **live (M3)** |
 | Football         | NFL, NCAA football              | head-to-head   | **live (M6)** |
 | Hockey           | NHL                             | head-to-head   | **live (M6)** |
@@ -216,9 +216,11 @@ icon. Click it to open the popover, then choose **Settings…** to:
   every ESPN team, with a search box), or type players/drivers for golf/NASCAR. Favorite games
   sort to the front and drive notifications.
 - Choose what each league contributes: **all games**, **favorites only**, or — for college
-  football — **Top 25 + favorites** (games with a ranked team, plus yours). Per league, so you
-  can hide every soccer match but your club's while still seeing the whole NCAAF slate. (A
-  favorites-only league with no favorites picked is never filtered down to nothing.)
+  football and basketball — **Top 25 + favorites** (games with a ranked team, plus yours). Per
+  league, so you can hide every soccer match but your club's while still seeing the whole NCAAF
+  slate. NCAAM starts on Top 25 + favorites, since a busy night has 100+ live games; switch it to
+  all games if you want them. (A favorites-only league with no favorites picked is never filtered
+  down to nothing.)
 - Override the refresh cadence and toggle favorites-only notifications.
 - Choose whether recent finals and upcoming favorites join the rotation (live always rotates),
   **pin a game** from the menu to keep one fixed, and set the maximum string length.

@@ -47,4 +47,40 @@ final class LeagueMigrationTests: XCTestCase {
         let seen = Set(defaults.array(forKey: "seenLeagues") as? [String] ?? [])
         XCTAssertEqual(seen, allIDs)
     }
+
+    // MARK: - Default filters (NCAAM's slate is too big to rotate through by default)
+
+    private let ncaam = "mens-college-basketball"
+
+    func testFirstRunStartsOnlyNCAAMOnTop25() {
+        XCTAssertEqual(Settings(defaults: freshDefaults()).leagueFilters, [ncaam: .ranked])
+    }
+
+    func testReturningUserGetsTheDefaultAlongsideTheirFilters() {
+        let defaults = freshDefaults()
+        defaults.set(["nba"], forKey: "enabledLeagues")
+        defaults.set(Array(allIDs.subtracting([ncaam])), forKey: "seenLeagues")
+        defaults.set(["eng.1": "favorites"], forKey: "leagueFilters")
+        XCTAssertEqual(Settings(defaults: defaults).leagueFilters,
+                       ["eng.1": .favorites, ncaam: .ranked])
+    }
+
+    func testDefaultSurvivesARelaunchWithoutAnyOtherChange() {
+        let defaults = freshDefaults()
+        _ = Settings(defaults: defaults)
+        XCTAssertEqual(Settings(defaults: defaults).filter(for: ncaam), .ranked)
+    }
+
+    func testChoosingAllSticksAcrossRelaunches() {
+        let defaults = freshDefaults()
+        Settings(defaults: defaults).setFilter(.all, for: ncaam)
+        XCTAssertEqual(Settings(defaults: defaults).filter(for: ncaam), .all)
+        XCTAssertEqual(Settings(defaults: defaults).filter(for: ncaam), .all)
+    }
+
+    func testDefaultDoesNotOverrideAMigratedFilter() {
+        let defaults = freshDefaults()
+        defaults.set(true, forKey: "favoritesOnly")
+        XCTAssertEqual(Settings(defaults: defaults).filter(for: ncaam), .favorites)
+    }
 }
