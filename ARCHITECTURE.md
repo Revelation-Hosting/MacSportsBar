@@ -145,11 +145,12 @@ stays green and fully hermetic (it runs identically locally and in CI).
 
 - **ESPN** `site.api.espn.com/apis/site/v2/sports/{sport}/{league}/scoreboard` — keyless but
   **undocumented and unofficial**; it can change shape without notice, which is exactly why every
-  adapter decodes defensively. Two quiet traps, both hit by college football:
+  adapter decodes defensively. Two quiet traps, both hit by college sports:
   - `/teams` returns **50 entries unless you pass `limit`** — the pro leagues fit, but the
     762-team college list was silently truncated. `TeamDirectory` always asks for `limit=1000`.
   - The **college-football scoreboard defaults to a Top-25 slice** (~24 games on a Saturday vs
-    ~86 for the FBS group). `LeagueID.scoreboardQuery` carries `groups=80` for it. The same
+    ~86 for the FBS group). `LeagueID.scoreboardQuery` carries `groups=80` for it, and
+    `groups=50` (Division I) for men's basketball, whose default board is just as thin. The same
     payload's `curatedRank.current` (99 = unranked) feeds `SportEvent.isRanked`.
 - **NASCAR** has its own feed because ESPN holds no NASCAR rights (its NASCAR data is `basic/manual`,
   with no live laps/stages/flags). Live telemetry comes from `cf.nascar.com/live/feeds/live-feed.json`

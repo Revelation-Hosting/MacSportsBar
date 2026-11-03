@@ -15,6 +15,9 @@ struct LeagueID {
     /// Whether this league's feed ranks teams (a Top-25 poll) — college sports only. Unlocks
     /// the "Top 25 + favorites" display filter for the league.
     var hasRankings: Bool = false
+    /// The display filter this league starts on, applied once when an install first sees it
+    /// (see `Settings.init`). `.all` for everything whose slate is small enough to rotate through.
+    var defaultFilter: LeagueFilter = .all
 }
 
 /// The user's favorites as handed to an adapter. Two kinds, matched differently:
