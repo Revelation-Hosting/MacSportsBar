@@ -43,6 +43,10 @@ struct SettingsView: View {
                         Toggle(league.league.displayName, isOn: enabled(league.id))
                             .labelsHidden()
                     }
+                    // The Favorite teams rows below are keyed by these same league IDs, and the
+                    // form scrolls a newly focused field into view by row ID — so a shared ID
+                    // made the first click in a team search field jump up to this row instead.
+                    .id("sports-\(league.id)")
                 }
                 Text("Per league: everything, only your favorites, or (college football) games with a Top-25 team plus your favorites. Favorites only needs favorites picked in that league — until then it shows everything.")
                     .font(.caption).foregroundStyle(.secondary)
