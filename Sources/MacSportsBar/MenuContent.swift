@@ -1,14 +1,17 @@
 import SwiftUI
 import AppKit
+import Combine
 
 /// The dropdown shown when the menu-bar item is clicked. With `.menuBarExtraStyle(.menu)`
 /// each top-level view becomes a native menu item, and a nested `Menu` becomes a flyout.
+/// It observes only `MenuPresenter`, never `AppModel`, so a poll can't close an open flyout.
 struct MenuContent: View {
-    @ObservedObject var model: AppModel
+    @ObservedObject var menu: MenuPresenter
+    let model: AppModel
     @Environment(\.openWindow) private var openWindow
 
     var body: some View {
-        let layout = MenuLayout(digest: model.favoritesDigest, events: model.events)
+        let layout = menu.layout
 
         if !layout.favorites.isEmpty {
             Text("Favorites")
@@ -69,6 +72,44 @@ struct MenuContent: View {
         } label: {
             Label(model.isPinned(event.id) ? "\(event.displayString)  📌" : event.displayString,
                   systemImage: event.league.symbolName)
+        }
+    }
+}
+
+/// What the dropdown shows, held steady while a menu is open.
+///
+/// Whenever the data a `.menu`-style `MenuBarExtra` observes publishes, SwiftUI re-applies every
+/// flyout's menu item, even when nothing changed, and that closes an open flyout. Hovering NFL to
+/// read its games, the flyout snapped shut on every poll (every 5–10s during a live game). So a
+/// layout that arrives while a menu is open waits here and lands when the menu closes.
+@MainActor
+final class MenuPresenter: ObservableObject {
+    @Published private(set) var layout = MenuLayout(digest: [], events: [])
+    /// The newest layout that arrived while a menu was open.
+    private var pending: MenuLayout?
+    private var menuIsOpen = false
+    private var cancellables = Set<AnyCancellable>()
+
+    init(notificationCenter: NotificationCenter = .default) {
+        // AppKit posts these on the main thread, once per menu session (not again per flyout).
+        // Handled synchronously: hopping through `RunLoop.main` would wait for the menu to close.
+        notificationCenter.publisher(for: NSMenu.didBeginTrackingNotification)
+            .sink { [weak self] _ in MainActor.assumeIsolated { self?.menuIsOpen = true } }
+            .store(in: &cancellables)
+        notificationCenter.publisher(for: NSMenu.didEndTrackingNotification)
+            .sink { [weak self] _ in MainActor.assumeIsolated { self?.menuDidClose() } }
+            .store(in: &cancellables)
+    }
+
+    func show(_ layout: MenuLayout) {
+        if menuIsOpen { pending = layout } else { self.layout = layout }
+    }
+
+    private func menuDidClose() {
+        menuIsOpen = false
+        if let pending {
+            layout = pending
+            self.pending = nil
         }
     }
 }

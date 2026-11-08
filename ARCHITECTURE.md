@@ -41,7 +41,7 @@ window), and renders a single menu-bar image.
 | `LeagueCatalog.swift` | The league registry. Adding a league = one `SupportedLeague` entry here. |
 | `AppModel.swift` | `@MainActor` brain: the poll loop, adaptive cadence, ranking, cycling, the favorites window, and the menu-bar render. Also defines `MenuBarPresenter`. |
 | `MacSportsBarApp.swift` | App entry, `MenuBarExtra` scene, the `--smoke-test` path, the accessory (agent) activation policy. |
-| `MenuContent.swift` | The dropdown shown on click: favorites at the top level, every other shown game in a flyout per league (`MenuLayout`, a tested seam), pin toggles, Settings/Quit. |
+| `MenuContent.swift` | The dropdown shown on click: favorites at the top level, every other shown game in a flyout per league (`MenuLayout`, a tested seam), pin toggles, Settings/Quit. `MenuPresenter` holds its data still while the menu is open. |
 | `Settings.swift` / `SettingsView.swift` | `UserDefaults`-backed settings + the configuration window (sport toggles, team picker, notifications). |
 | `NotificationManager.swift` | Favorite-team boundary notifications (start / period / final), each independently toggleable. |
 | `Updater.swift` | The Settings window's update flow: compare this build's commit to `main`, then fetch, build, swap and relaunch. |
@@ -118,6 +118,10 @@ composited `NSImage`** (`ImageRenderer` over a SwiftUI `HStack`). Two subtleties
   the label observes *instead of* `AppModel`. The poll loop reassigns `AppModel.events` every few
   seconds; if the label observed that, macOS would re-push (and intermittently drop) the status item.
   The render is also signature-skipped — identical readouts don't re-render.
+- **Open flyouts.** The dropdown observes its own `MenuPresenter`, not `AppModel`, for a similar
+  reason: any publish makes SwiftUI re-apply each league flyout's menu item, which closes a flyout
+  the user is hovering. While a menu is open (`NSMenu` tracking), new data waits and lands on close.
+  The label keeps updating meanwhile; that doesn't touch the menu.
 
 ## Adaptive polling
 
