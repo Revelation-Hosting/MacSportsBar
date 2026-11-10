@@ -27,7 +27,7 @@ struct MacSportsBarApp: App {
         // The status item shows a label as EITHER text or an image, never both (and inline
         // images inside a Text are dropped). So we feed it one pre-composited image.
         MenuBarExtra {
-            MenuContent(model: model)
+            MenuContent(menu: model.menu, model: model)
         } label: {
             MenuBarLabel(presenter: model.menuBar, model: model)
         }

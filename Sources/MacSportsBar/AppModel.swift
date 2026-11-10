@@ -20,13 +20,15 @@ final class AppModel: ObservableObject {
     /// The composited menu-bar image lives here (not on `AppModel`) so the label doesn't re-render
     /// on unrelated poll churn — see `MenuBarPresenter`.
     let menuBar = MenuBarPresenter()
+    /// What the dropdown shows, likewise in its own observable — see `MenuPresenter`.
+    let menu = MenuPresenter()
     /// Internal render inputs (not observed by any view; the label reads `menuBar.image`).
     private(set) var menuBarText: String = "Loading…"
     private(set) var menuBarSymbol: String = "sportscourt.fill"
-    /// Full ranked list, surfaced in the dropdown menu.
-    @Published var events: [SportEvent] = []
+    /// Full ranked list after the display filters; the dropdown gets it through `menu`.
+    private var events: [SportEvent] = []
     /// Favorite teams' games across ±24h (recent finals, live, upcoming) — the dropdown digest.
-    @Published var favoritesDigest: [SportEvent] = []
+    private var favoritesDigest: [SportEvent] = []
 
     private let client = ESPNClient()
     private let notifications = NotificationManager()
@@ -344,6 +346,7 @@ final class AppModel: ObservableObject {
         let shown = Self.displaySet(from: fresh, filters: settings.activeFilters)
         filterHidGames = shown.count < fresh.count
         events = shown
+        menu.show(MenuLayout(digest: favoritesDigest, events: shown))
         currentInterval = pollInterval(for: shown)
         cycleCandidates = rotationCandidates(from: shown)
         cycleIndex = cycleCandidates.isEmpty ? 0 : cycleIndex % cycleCandidates.count
